@@ -1,0 +1,24 @@
+<c3p0-config>
+	<default-config>
+		<property name="driverClass">oracle.jdbc.driver.OracleDriver</property>
+		<property name="password">yyy</property>
+		<property name="minPoolSize">2</property>
+		<property name="acquireIncrement">1</property>
+		<property name="maxPoolSize">200</property>
+		<property name="idleConnectionTestPeriod">100</property>
+		<property name="maxStatements">0</property>
+		<property name="maxConnectionAge">3600</property>
+		<property name="checkoutTimeout">60000</property>
+		<property name="user">xxx</property>
+	</default-config>
+
+	<named-config name="trpProd">
+		<property name="jdbcUrl">jdbc:oracle:thin:@(DESCRIPTION=(ADDRESS=(PROTOCOL=TCP)(HOST=lora3-vip.intra.uibk.ac.at)(PORT=1521))(ADDRESS=(PROTOCOL=TCP)(HOST=lora4-vip.intra.uibk.ac.at)(PORT=1521))(CONNECT_DATA=(SERVICE_NAME=DEA.intra.uibk.ac.at)))
+		</property>
+	</named-config>
+
+	<named-config name="trpTest">	
+		<property name="jdbcUrl">jdbc:oracle:thin:@(DESCRIPTION=(ADDRESS=(PROTOCOL=TCP)(HOST=mora3-vip.intra.uibk.ac.at)(PORT=1521))(ADDRESS=(PROTOCOL=TCP)(HOST=mora4-vip.intra.uibk.ac.at)(PORT=1521))(CONNECT_DATA=(SERVICE_NAME=DEAT.intra.uibk.ac.at)))
+		</property>
+	</named-config>
+</c3p0-config>

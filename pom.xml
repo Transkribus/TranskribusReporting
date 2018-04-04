@@ -1,0 +1,133 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+
+	<groupId>eu.transkribus</groupId>
+	<artifactId>report</artifactId>
+	<version>0.0.1</version>
+	<packaging>jar</packaging>
+
+	<name>TranskribusReporting</name>
+	<url>http://maven.apache.org</url>
+
+	<properties>
+		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+		<dependency-dir>libs</dependency-dir>
+	</properties>
+
+	<dependencies>
+
+		<dependency>
+			<groupId>eu.transkribus</groupId>
+			<artifactId>TranskribusPersistence</artifactId>
+			<version>1.0</version>
+		</dependency>
+	</dependencies>
+
+	<build>
+		<finalName>${appName}-${project.version}</finalName>
+		<resources>
+			<resource>
+				<directory>src/main/resources</directory>
+				<filtering>true</filtering>
+			</resource>
+		</resources>
+		<plugins>
+			<plugin>
+				<artifactId>maven-compiler-plugin</artifactId>
+				<version>3.1</version>
+				<configuration>
+					<source>1.8</source>
+					<target>1.8</target>
+				</configuration>
+			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-jar-plugin</artifactId>
+				<configuration>
+					<excludes>
+						<exclude>**/*.properties</exclude>
+						<exclude>**/logback.xml</exclude>
+						<exclude>**/*.properties_example</exclude>
+					</excludes>
+					<archive>
+						<addMavenDescriptor>false</addMavenDescriptor>
+						<manifest>
+							<addClasspath>true</addClasspath>
+							<classpathPrefix>${dependency-dir}/</classpathPrefix>
+							<mainClass>eu.transkribus.report.App</mainClass>
+						</manifest>
+						<manifestEntries>
+							<Class-Path>./</Class-Path>
+						</manifestEntries>
+					</archive>
+				</configuration>
+			</plugin>
+			<!-- Copy jars to dedicated lib in target folder: -->
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-dependency-plugin</artifactId>
+				<version>2.5.1</version>
+				<executions>
+					<execution>
+						<id>copy-dependencies</id>
+						<phase>package</phase>
+						<goals>
+							<goal>copy-dependencies</goal>
+						</goals>
+						<configuration>
+							<outputDirectory>${project.build.directory}/${dependency-dir}/</outputDirectory>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
+			<plugin>
+				<artifactId>maven-assembly-plugin</artifactId>
+				<configuration>
+					<finalName>${appName}-${project.version}</finalName>
+					<archive>
+						<manifest>
+							<mainClass>eu.transkribus.report.App</mainClass>
+							<packageName>eu.transkribus.report</packageName>
+							<addClasspath>true</addClasspath>
+							<!-- impl and spec entries are needed by image-io, otherwise "vendor 
+								== null" exception occurs -->
+							<!-- note also that at the top <organization><name> MUST be Sun Microsystems, 
+								Inc. -->
+							<addDefaultImplementationEntries>true</addDefaultImplementationEntries>
+							<addDefaultSpecificationEntries>true</addDefaultSpecificationEntries>
+						</manifest>
+					</archive>
+					<descriptors>
+						<descriptor>src/main/assembly/descriptor.xml</descriptor>
+					</descriptors>
+					<configuration>
+						<source>1.8</source>
+						<target>1.8</target>
+					</configuration>
+				</configuration>
+				<executions>
+					<execution>
+						<!-- <id>make-assembly</id> -->
+						<phase>package</phase>
+						<goals>
+							<goal>single</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin>
+		</plugins>
+	</build>
+
+	<profiles>
+		<profile>
+			<id>prod</id>
+			<activation>
+				<activeByDefault>true</activeByDefault>
+			</activation>
+			<properties>
+				<appName>TranskribusReport</appName>
+			</properties>
+		</profile>
+	</profiles>
+</project>
