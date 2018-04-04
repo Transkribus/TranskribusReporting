@@ -29,6 +29,7 @@ import org.jfree.chart.ChartUtilities;
 import org.jfree.chart.JFreeChart;
 import org.jfree.chart.plot.PlotOrientation;
 import org.jfree.data.category.DefaultCategoryDataset;
+import org.jfree.data.general.DefaultPieDataset;
 
 import com.itextpdf.text.Chunk;
 import com.itextpdf.text.Document;
@@ -88,9 +89,9 @@ public class ReportFromDatabase implements ReportDatabaseInterface {
 
 			failedJobs.scalePercent(70);
 
-			Image loginsTranskribusX = Image.getInstance("images/LoginsTranskribusX.jpg");
+			Image failedJobsPie = Image.getInstance("images/FailedJobsPie.jpg");
 
-			loginsTranskribusX.scalePercent(70);
+			failedJobsPie.scalePercent(70);
 
 			Image wordsTrained = Image.getInstance("images/WordsTrained.jpg");
 
@@ -115,6 +116,7 @@ public class ReportFromDatabase implements ReportDatabaseInterface {
 			document.newPage();
 
 			document.add(failedJobs);
+			document.add(failedJobsPie);
 			document.add(allActions);
 
 			document.add(new Paragraph(
@@ -153,6 +155,7 @@ public class ReportFromDatabase implements ReportDatabaseInterface {
 	public static void failedJobsChart(Connection conn, int timePeriod) throws SQLException {
 
 		DefaultCategoryDataset dataset = new DefaultCategoryDataset();
+		DefaultPieDataset piedataset = new DefaultPieDataset();
 
 		String sqlFailed = "select count(*) from jobs where STATE like 'FAILED' AND DESCRIPTION not like 'Could not create workdir%' AND DESCRIPTION not like '%Auf dem Gerät ist kein Speicherplatz mehr verfügbar%'  AND STARTED between ? and ?";
 		String sqlDone = "select count(*) from jobs where STATE not like 'FAILED' AND DESCRIPTION not like 'Could not create workdir%' AND DESCRIPTION not like '%Auf dem Gerät ist kein Speicherplatz mehr verfügbar%'   AND STARTED between ? and ?";
@@ -173,8 +176,12 @@ public class ReportFromDatabase implements ReportDatabaseInterface {
 			int countDone = rs2.getInt("count(*)");
 			dataset.addValue(countFailed, "Jobs failed", " ");
 			dataset.addValue(countDone, "Jobs done", " ");
+			piedataset.setValue("Jobs done", countDone);
+			piedataset.setValue("Jobs failed", countFailed);
 
 		}
+
+		JFreeChart pieChart = ChartFactory.createPieChart("Pie Chart failed jobs", piedataset, true, true, false);
 
 		JFreeChart barChart = ChartFactory.createBarChart(
 				"All jobs failed/done between " + sqlTimeAgo(timePeriod) + " and " + sqlTimeNow(), " ",
@@ -185,8 +192,10 @@ public class ReportFromDatabase implements ReportDatabaseInterface {
 		float quality = 1;
 
 		File BarChart = new File("images/FailedJobs.jpg");
+		File PieChart = new File("images/FailedJobsPie.jpg");
 		try {
 			ChartUtilities.saveChartAsJPEG(BarChart, quality, barChart, width, height);
+			ChartUtilities.saveChartAsJPEG(PieChart, quality, pieChart, width, height);
 		} catch (IOException e) {
 
 			e.printStackTrace();
@@ -288,79 +297,6 @@ public class ReportFromDatabase implements ReportDatabaseInterface {
 		float quality = 1;
 
 		File BarChart = new File("images/WordsTrained.jpg");
-		try {
-			ChartUtilities.saveChartAsJPEG(BarChart, quality, barChart, width, height);
-		} catch (IOException e) {
-
-			e.printStackTrace();
-		}
-
-	}
-
-	public static void numberLoginTranskribusXChart(Connection conn, int timePeriod) throws SQLException {
-
-		DefaultCategoryDataset dataset = new DefaultCategoryDataset();
-
-		String sql = "select count(*) from actions a join session_history sh on a.session_history_id = sh.session_history_id where a.type_id = 2 AND sh.useragent like 'Jersey%' AND time between ? and ?";
-
-		PreparedStatement prep = conn.prepareStatement(sql);
-
-		prep.setDate(1, sqlTimeAgo(timePeriod));
-		prep.setDate(2, sqlTimeNow());
-
-		ResultSet rs = prep.executeQuery();
-
-		while (rs.next()) {
-			int countNumberLogin = rs.getInt("count(*)");
-			dataset.setValue(countNumberLogin, "Logins TranskribusX", "Logins TranskribusX");
-
-		}
-		JFreeChart barChart = ChartFactory.createBarChart(
-				"All login via TranskribusX between " + sqlTimeAgo(timePeriod) + " and " + sqlTimeNow(), " ",
-				"Number of logins to TranskribusX", dataset, PlotOrientation.VERTICAL, true, true, false);
-
-		int width = 640;
-		int height = 480;
-		float quality = 1;
-
-		File BarChart = new File("images/LoginsTranskribusX.jpg");
-		try {
-			ChartUtilities.saveChartAsJPEG(BarChart, quality, barChart, width, height);
-		} catch (IOException e) {
-
-			e.printStackTrace();
-		}
-
-	}
-
-	public static void numberCreatedDocUserChart(Connection conn, int timePeriod) throws SQLException {
-
-		DefaultCategoryDataset dataset = new DefaultCategoryDataset();
-
-		String sql = "select count(docid), userid from jobs where  TYPE = 'Create Document' AND STARTED between ? and ? group by userid";
-
-		PreparedStatement prep = conn.prepareStatement(sql);
-
-		prep.setDate(1, sqlTimeAgo(timePeriod));
-		prep.setDate(2, sqlTimeNow());
-
-		ResultSet rs = prep.executeQuery();
-
-		while (rs.next()) {
-			int countDoc = rs.getInt("count(docid)");
-			String userId = rs.getString("userid");
-			dataset.setValue(countDoc, userId, "Created documents with userId");
-
-		}
-		JFreeChart barChart = ChartFactory.createBarChart(
-				"All created documents with userId between " + sqlTimeAgo(timePeriod) + " and " + sqlTimeNow(), " ",
-				"Number of created document by user", dataset, PlotOrientation.VERTICAL, true, true, false);
-
-		int width = 640;
-		int height = 480;
-		float quality = 1;
-
-		File BarChart = new File("images/CreatedDocumentsUserId.jpg");
 		try {
 			ChartUtilities.saveChartAsJPEG(BarChart, quality, barChart, width, height);
 		} catch (IOException e) {
@@ -553,10 +489,6 @@ public class ReportFromDatabase implements ReportDatabaseInterface {
 			failedJobsChart(conn, timePeriod);
 
 			numberWordsTrainedChart(conn, timePeriod);
-
-			numberLoginTranskribusXChart(conn, timePeriod);
-
-			numberCreatedDocUserChart(conn, timePeriod);
 
 			averageUsers(conn, timePeriod);
 
