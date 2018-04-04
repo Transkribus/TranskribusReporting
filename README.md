@@ -1,3 +1,3 @@
 # TranskribusReporting
 
-Utilities create reports for admins
+Utilities for creating reports for admins
