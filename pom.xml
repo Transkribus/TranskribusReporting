@@ -22,6 +22,11 @@
 			<artifactId>TranskribusPersistence</artifactId>
 			<version>1.0</version>
 		</dependency>
+		<dependency>
+             <groupId>jfree</groupId>
+             <artifactId>jfreechart</artifactId>
+             <version>1.0.13</version>
+        </dependency>
 	</dependencies>
 
 	<build>
@@ -49,13 +54,15 @@
 						<exclude>**/*.properties</exclude>
 						<exclude>**/logback.xml</exclude>
 						<exclude>**/*.properties_example</exclude>
+						<exclude>**/*.xml_example</exclude>
+						<exclude>**/*.xml</exclude>
 					</excludes>
 					<archive>
 						<addMavenDescriptor>false</addMavenDescriptor>
 						<manifest>
 							<addClasspath>true</addClasspath>
 							<classpathPrefix>${dependency-dir}/</classpathPrefix>
-							<mainClass>eu.transkribus.report.App</mainClass>
+							<mainClass>eu.transkribus.report.ReportFromDatabase</mainClass>
 						</manifest>
 						<manifestEntries>
 							<Class-Path>./</Class-Path>
@@ -87,7 +94,7 @@
 					<finalName>${appName}-${project.version}</finalName>
 					<archive>
 						<manifest>
-							<mainClass>eu.transkribus.report.App</mainClass>
+							<mainClass>eu.transkribus.report.ReportFromDatabase</mainClass>
 							<packageName>eu.transkribus.report</packageName>
 							<addClasspath>true</addClasspath>
 							<!-- impl and spec entries are needed by image-io, otherwise "vendor 
