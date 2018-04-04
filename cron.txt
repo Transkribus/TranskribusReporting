@@ -1,0 +1,9 @@
+
+# run everyday at 00:00
+0 0 * * * java -jar /target/TranskribusReport-0.0.1.jar 1
+
+# run every Sunday at 02:00 and on day 1 of each Month
+0 2 1 * 0 java -jar /target/TranskribusReport-0.0.1.jar 7
+
+# run once a month at 01:00 so it is not erased by daily report
+0 1 1 * * java -jar /target/TranskribusReport-0.0.1.jar 30
