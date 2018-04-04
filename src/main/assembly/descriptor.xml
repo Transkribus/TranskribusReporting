@@ -27,6 +27,7 @@
 			<outputDirectory>/</outputDirectory>
 			<includes>
 				<include>logback.xml</include>
+				<include>c3p0-config.xml</include>
 			</includes>
 		</fileSet>
 	</fileSets>
