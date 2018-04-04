@@ -507,9 +507,16 @@ public class ReportFromDatabase implements ReportDatabaseInterface {
 	}
 
 	public static void main(String[] args) {
+		Runtime.getRuntime().addShutdownHook(new Thread() {
+			@Override
+			public void run() {
+				DbConnection.shutDown();
+			}
+		});
 		new File("images").mkdir();
 		new File("report").mkdir();
 		generateReport(Integer.parseInt(args[0]));
+		Runtime.getRuntime().exit(0);
 	}
 
 }
