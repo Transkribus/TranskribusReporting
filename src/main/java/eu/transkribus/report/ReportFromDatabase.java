@@ -67,7 +67,7 @@ public class ReportFromDatabase implements ReportDatabaseInterface {
 
 		for (String mailTo : mailingList) {
 			MailUtils.sendMailFromUibkAddress(mailTo, " ", "Report from " + sqlTimeNow(),
-					"This is the lateste report from " + sqlTimeNow()
+					"This is the latest report from " + sqlTimeNow()
 							+ " including a PDF with charts and XLS with detailed user data",
 					files, false, false, false);
 		}
