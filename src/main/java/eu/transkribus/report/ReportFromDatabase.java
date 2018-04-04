@@ -507,7 +507,8 @@ public class ReportFromDatabase implements ReportDatabaseInterface {
 	}
 
 	public static void main(String[] args) {
-
+		new File("images").mkdir();
+		new File("report").mkdir();
 		generateReport(Integer.parseInt(args[0]));
 	}
 
