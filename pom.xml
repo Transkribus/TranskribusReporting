@@ -54,13 +54,15 @@
 						<exclude>**/*.properties</exclude>
 						<exclude>**/logback.xml</exclude>
 						<exclude>**/*.properties_example</exclude>
+						<exclude>**/*.xml_example</exclude>
++						<exclude>**/*.xml</exclude>
 					</excludes>
 					<archive>
 						<addMavenDescriptor>false</addMavenDescriptor>
 						<manifest>
 							<addClasspath>true</addClasspath>
 							<classpathPrefix>${dependency-dir}/</classpathPrefix>
-							<mainClass>eu.transkribus.report.App</mainClass>
+							<mainClass>eu.transkribus.report.ReportFromDatabase</mainClass>
 						</manifest>
 						<manifestEntries>
 							<Class-Path>./</Class-Path>

@@ -16,6 +16,7 @@ import java.util.Map;
 import java.util.Set;
 
 import javax.imageio.ImageIO;
+import javax.mail.MessagingException;
 import javax.swing.JTable;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.JTableHeader;
@@ -67,10 +68,22 @@ public class ReportFromDatabase implements ReportDatabaseInterface {
 		String[] mailingList = ReportDatabaseInterface.mailingList();
 
 		for (String mailTo : mailingList) {
-			MailUtils.sendMailFromUibkAddress(mailTo, " ", "Report from " + sqlTimeNow(),
-					"This is the latest report from " + sqlTimeNow()
-							+ " including a PDF with charts and XLS with detailed user data",
-					files, false, false, false);
+			/*
+			 * return MailUtils.sendMailFromUibkAddress(mailTo, " ", "Report from " +
+			 * sqlTimeNow(), "This is the latest report from " + sqlTimeNow() +
+			 * " including a PDF with charts and XLS with detailed user data", files, false,
+			 * false, false);
+			 */
+			try {
+				MailUtils.TRANSKRIBUS_UIBK_MAIL_SERVER
+						.sendMailSSL(mailTo, "Report from " + sqlTimeNow(),
+								"This is the latest report from " + sqlTimeNow()
+										+ " including a PDF with charts and XLS with detailed user data",
+								files, "", false);
+			} catch (MessagingException e) {
+
+				e.printStackTrace();
+			}
 		}
 
 	}
@@ -134,6 +147,7 @@ public class ReportFromDatabase implements ReportDatabaseInterface {
 
 		} catch (Exception e) {
 			e.printStackTrace();
+
 		}
 
 	}
@@ -333,7 +347,7 @@ public class ReportFromDatabase implements ReportDatabaseInterface {
 
 		}
 		JFreeChart barChart = ChartFactory.createBarChart(
-				"Average user logins per day between " + sqlTimeAgo(timePeriod) + " and " + sqlTimeNow(), " ",
+				"Average unique user logins per day between " + sqlTimeAgo(timePeriod) + " and " + sqlTimeNow(), " ",
 				"Average logins", dataset, PlotOrientation.VERTICAL, true, true, false);
 
 		int width = 640;
@@ -459,6 +473,7 @@ public class ReportFromDatabase implements ReportDatabaseInterface {
 			model.addRow(new Object[] { countImage, countJobs, countHTR, countLogin, countSaved });
 
 		}
+
 		JTable table = new JTable();
 		table.setModel(model);
 		JTableHeader header = table.getTableHeader();
@@ -500,15 +515,26 @@ public class ReportFromDatabase implements ReportDatabaseInterface {
 
 			covertJpgToPdf(timePeriod);
 
-		} catch (SQLException e) {
+		}
+
+		catch (SQLException e) {
 			e.printStackTrace();
+
 		}
 
 	}
 
 	public static void main(String[] args) {
-
+		Runtime.getRuntime().addShutdownHook(new Thread() {
+			@Override
+			public void run() {
+				DbConnection.shutDown();
+			}
+		});
+		new File("images").mkdir();
+		new File("report").mkdir();
 		generateReport(Integer.parseInt(args[0]));
+		Runtime.getRuntime().exit(0);
 	}
 
 }
