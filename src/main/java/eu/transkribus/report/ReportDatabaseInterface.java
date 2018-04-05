@@ -12,7 +12,6 @@ public interface ReportDatabaseInterface {
 	}
 
 	static public List<String> mailingList() {
-		String[] mailingList = { "florian.krull@student.uibk.ac.at" };
 		TrpProperties mailProp = new TrpProperties("email.properties");
 		List<String> mailListProp = mailProp.getCsvStringListProperty("recipients", false);
 		return mailListProp;

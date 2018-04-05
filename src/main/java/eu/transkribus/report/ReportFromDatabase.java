@@ -69,12 +69,7 @@ public class ReportFromDatabase implements ReportDatabaseInterface {
 		List<String> mailingList = ReportDatabaseInterface.mailingList();
 
 		for (String mailTo : mailingList) {
-			/*
-			 * return MailUtils.sendMailFromUibkAddress(mailTo, " ", "Report from " +
-			 * sqlTimeNow(), "This is the latest report from " + sqlTimeNow() +
-			 * " including a PDF with charts and XLS with detailed user data", files, false,
-			 * false, false);
-			 */
+
 			try {
 				MailUtils.TRANSKRIBUS_UIBK_MAIL_SERVER
 						.sendMailSSL(mailTo, "Report from " + sqlTimeNow(),
@@ -93,7 +88,6 @@ public class ReportFromDatabase implements ReportDatabaseInterface {
 
 		try {
 			Document document = new Document();
-			// Date now = sqlTimeNow();
 			File pdfFile = new File("report/report" + sqlTimeNow() + ".pdf");
 			PdfWriter.getInstance(document, new FileOutputStream(pdfFile));
 
