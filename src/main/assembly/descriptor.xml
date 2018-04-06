@@ -28,6 +28,7 @@
 			<includes>
 				<include>logback.xml</include>
 				<include>c3p0-config.xml</include>
+				<include>email.properties</include>
 			</includes>
 		</fileSet>
 	</fileSets>
