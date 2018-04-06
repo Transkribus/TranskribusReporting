@@ -363,27 +363,34 @@ public class ReportFromDatabase implements ReportDatabaseInterface {
 
 		String sql = "select * from actions a join session_history sh on a.session_history_id = sh.session_history_id where a.type_id = 2 AND a.client_Id is null  AND time between ? and ? order by time desc";
 		String sql2 = "select * from images where created between ? and ? order by created desc  ";
+		String sql3 = "select * from jobs where started between ? and ? order by started desc";
 
 		HSSFWorkbook workbook = new HSSFWorkbook();
 		HSSFSheet sheet = workbook.createSheet("Actions of Users");
 		HSSFSheet sheet2 = workbook.createSheet("Images Uploaded");
+		HSSFSheet sheet3 = workbook.createSheet("Jobs created");
 
 		Map<String, Object[]> excelData = new HashMap<String, Object[]>();
 		Map<String, Object[]> excelData2 = new HashMap<String, Object[]>();
+		Map<String, Object[]> excelData3 = new HashMap<String, Object[]>();
 		int rowCount = 0;
 
 		PreparedStatement prep = conn.prepareStatement(sql);
 		PreparedStatement prep2 = conn.prepareStatement(sql2);
+		PreparedStatement prep3 = conn.prepareStatement(sql3);
 
 		prep.setDate(1, sqlTimeAgo(timePeriod));
 		prep.setDate(2, sqlTimeNow());
 		prep2.setDate(1, sqlTimeAgo(timePeriod));
 		prep2.setDate(2, sqlTimeNow());
+		prep3.setDate(1, sqlTimeAgo(timePeriod));
+		prep3.setDate(2, sqlTimeNow());
 
 		ResultSet rs = prep.executeQuery();
 		ResultSet rs2 = prep2.executeQuery();
+		ResultSet rs3 = prep3.executeQuery();
 
-		while (rs.next() && rs2.next()) {
+		while (rs.next() && rs2.next() && rs3.next()) {
 
 			rowCount = rowCount + 1;
 			int actionId = rs.getInt("action_id");
@@ -401,10 +408,21 @@ public class ReportFromDatabase implements ReportDatabaseInterface {
 			int height = rs2.getInt("height");
 			String created2 = rs2.getString("created");
 
+			int jobid = rs3.getInt("jobid");
+			String userid = rs3.getString("userid");
+			String type = rs3.getString("type");
+			String description = rs3.getString("description");
+			int pages = rs3.getInt("pages");
+			String module = rs3.getString("module");
+			String started = rs3.getString("started");
+			String ended = rs3.getString("ended");
+
 			excelData.put(Integer.toString(rowCount),
 					new Object[] { actionId, userLogin, userAgent, ip, created, destroyed, guiVersion });
 			excelData2.put(Integer.toString(rowCount),
 					new Object[] { imageId, imageKey, imageFile, width, height, created2 });
+			excelData3.put(Integer.toString(rowCount),
+					new Object[] { jobid, userid, type, description, pages, module, started, ended });
 
 		}
 		// load Data into worksheet
@@ -430,6 +448,22 @@ public class ReportFromDatabase implements ReportDatabaseInterface {
 		for (String key : keyset2) {
 			Row row = sheet2.createRow(rownum2++);
 			Object[] objArr = excelData2.get(key);
+			int cellnum = 0;
+			for (Object obj : objArr) {
+				Cell cell = row.createCell(cellnum++);
+				if (obj instanceof Integer) {
+					cell.setCellValue((Integer) obj);
+				} else {
+					cell.setCellValue((String) obj);
+				}
+			}
+		}
+
+		Set<String> keyset3 = excelData3.keySet();
+		int rownum3 = 0;
+		for (String key : keyset3) {
+			Row row = sheet3.createRow(rownum3++);
+			Object[] objArr = excelData3.get(key);
 			int cellnum = 0;
 			for (Object obj : objArr) {
 				Cell cell = row.createCell(cellnum++);
