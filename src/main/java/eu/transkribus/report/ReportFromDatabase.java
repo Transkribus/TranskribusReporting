@@ -367,7 +367,7 @@ public class ReportFromDatabase implements ReportDatabaseInterface {
 		FimgStoreUriBuilder uriBuilder = FimgStoreReadConnection.getUriBuilder();
 
 		String sql = "select * from actions a join session_history sh on a.session_history_id = sh.session_history_id where a.type_id = 2 AND a.client_Id is null  AND time between ? and ? order by time desc";
-		String sql2 = "select * from images,DOC_MD where created between ? and ? ";
+		String sql2 = "select * from images join pages on IMAGES.IMAGE_ID = PAGES.IMAGE_ID join doc_md on PAGES.DOCID = DOC_MD.DOCID where tags_stored between ? and ? ";
 		String sql3 = "select * from jobs where started between ? and ? order by started desc";
 
 		HSSFWorkbook workbook = new HSSFWorkbook();
@@ -406,16 +406,14 @@ public class ReportFromDatabase implements ReportDatabaseInterface {
 			String destroyed = rs.getString("destroyed");
 			String guiVersion = rs.getString("gui_version");
 
-			int imageId = rs2.getInt("image_id");
+			int imageId = rs2.getInt("docid");
 			String imageKey = rs2.getString("imagekey");
-			String uri = uriBuilder.getImgUri(imageKey, ImgType.browser).toString();
+			String uri = uriBuilder.getImgUri(imageKey, ImgType.view).toString();
 			String imageFile = rs2.getString("imgfilename");
 			String uploader = rs2.getString("uploader");
 			String title = rs2.getString("title");
 			String author = rs2.getString("author");
-			int width = rs2.getInt("width");
-			int height = rs2.getInt("height");
-			String created2 = rs2.getString("created");
+			String created2 = rs2.getString("tags_stored");
 
 			int jobid = rs3.getInt("jobid");
 			String userid = rs3.getString("userid");
@@ -429,7 +427,7 @@ public class ReportFromDatabase implements ReportDatabaseInterface {
 			excelData.put(Integer.toString(rowCount),
 					new Object[] { actionId, userLogin, userAgent, ip, created, destroyed, guiVersion });
 			excelData2.put(Integer.toString(rowCount),
-					new Object[] { imageId, uri, imageFile, uploader, title, author, width, height, created2 });
+					new Object[] { imageId, uri, imageFile, uploader, title, author, created2 });
 			excelData3.put(Integer.toString(rowCount),
 					new Object[] { jobid, userid, type, description, pages, module, started, ended });
 
