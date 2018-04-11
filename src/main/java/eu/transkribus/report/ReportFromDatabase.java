@@ -408,7 +408,7 @@ public class ReportFromDatabase implements ReportDatabaseInterface {
 
 			int imageId = rs2.getInt("image_id");
 			String imageKey = rs2.getString("imagekey");
-			String uri = uriBuilder.getImgUri(imageKey, ImgType.browser).toString();
+			String uri = uriBuilder.getImgUri(imageKey, ImgType.view).toString();
 			String imageFile = rs2.getString("imgfilename");
 			String uploader = rs2.getString("uploader");
 			String title = rs2.getString("title");
