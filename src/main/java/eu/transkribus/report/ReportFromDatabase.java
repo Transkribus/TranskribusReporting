@@ -367,7 +367,7 @@ public class ReportFromDatabase implements ReportDatabaseInterface {
 		FimgStoreUriBuilder uriBuilder = FimgStoreReadConnection.getUriBuilder();
 
 		String sql = "select * from actions a join session_history sh on a.session_history_id = sh.session_history_id where a.type_id = 2 AND a.client_Id is null  AND time between ? and ? order by time desc";
-		String sql2 = "select * from images where created between ? and ? order by created desc  ";
+		String sql2 = "select * from images,doc_md where created between ? and ? order by created desc  ";
 		String sql3 = "select * from jobs where started between ? and ? order by started desc";
 
 		HSSFWorkbook workbook = new HSSFWorkbook();
@@ -410,6 +410,7 @@ public class ReportFromDatabase implements ReportDatabaseInterface {
 			String imageKey = rs2.getString("imagekey");
 			String uri = uriBuilder.getImgUri(imageKey, ImgType.browser).toString();
 			String imageFile = rs2.getString("imgfilename");
+			String uploader = rs2.getString("uploader");
 			int width = rs2.getInt("width");
 			int height = rs2.getInt("height");
 			String created2 = rs2.getString("created");
@@ -426,7 +427,7 @@ public class ReportFromDatabase implements ReportDatabaseInterface {
 			excelData.put(Integer.toString(rowCount),
 					new Object[] { actionId, userLogin, userAgent, ip, created, destroyed, guiVersion });
 			excelData2.put(Integer.toString(rowCount),
-					new Object[] { imageId, uri, imageFile, width, height, created2 });
+					new Object[] { imageId, uri, imageFile, uploader, width, height, created2 });
 			excelData3.put(Integer.toString(rowCount),
 					new Object[] { jobid, userid, type, description, pages, module, started, ended });
 
