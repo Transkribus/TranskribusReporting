@@ -26,6 +26,8 @@ import org.apache.poi.hssf.usermodel.HSSFSheet;
 import org.apache.poi.hssf.usermodel.HSSFWorkbook;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.Row;
+import org.dea.fimgstoreclient.beans.ImgType;
+import org.dea.fimgstoreclient.utils.FimgStoreUriBuilder;
 import org.jfree.chart.ChartFactory;
 import org.jfree.chart.ChartUtilities;
 import org.jfree.chart.JFreeChart;
@@ -39,6 +41,7 @@ import com.itextpdf.text.Image;
 import com.itextpdf.text.Paragraph;
 import com.itextpdf.text.pdf.PdfWriter;
 
+import eu.transkribus.core.io.FimgStoreReadConnection;
 import eu.transkribus.persistence.DbConnection;
 import eu.transkribus.persistence.DbConnection.DbConfig;
 import eu.transkribus.persistence.util.MailUtils;
@@ -361,6 +364,8 @@ public class ReportFromDatabase implements ReportDatabaseInterface {
 
 	public static void nrLoginsActionsExcel(Connection conn, int timePeriod) throws SQLException {
 
+		FimgStoreUriBuilder uriBuilder = FimgStoreReadConnection.getUriBuilder();
+
 		String sql = "select * from actions a join session_history sh on a.session_history_id = sh.session_history_id where a.type_id = 2 AND a.client_Id is null  AND time between ? and ? order by time desc";
 		String sql2 = "select * from images where created between ? and ? order by created desc  ";
 		String sql3 = "select * from jobs where started between ? and ? order by started desc";
@@ -403,6 +408,7 @@ public class ReportFromDatabase implements ReportDatabaseInterface {
 
 			int imageId = rs2.getInt("image_id");
 			String imageKey = rs2.getString("imagekey");
+			String uri = uriBuilder.getImgUri(imageKey, ImgType.browser).toString();
 			String imageFile = rs2.getString("imgfilename");
 			int width = rs2.getInt("width");
 			int height = rs2.getInt("height");
@@ -412,15 +418,15 @@ public class ReportFromDatabase implements ReportDatabaseInterface {
 			String userid = rs3.getString("userid");
 			String type = rs3.getString("type");
 			String description = rs3.getString("description");
-			int pages = rs3.getInt("pages");
-			String module = rs3.getString("module");
+			String pages = rs3.getString("pages");
+			String module = rs3.getString("module_name");
 			String started = rs3.getString("started");
 			String ended = rs3.getString("ended");
 
 			excelData.put(Integer.toString(rowCount),
 					new Object[] { actionId, userLogin, userAgent, ip, created, destroyed, guiVersion });
 			excelData2.put(Integer.toString(rowCount),
-					new Object[] { imageId, imageKey, imageFile, width, height, created2 });
+					new Object[] { imageId, uri, imageFile, width, height, created2 });
 			excelData3.put(Integer.toString(rowCount),
 					new Object[] { jobid, userid, type, description, pages, module, started, ended });
 
