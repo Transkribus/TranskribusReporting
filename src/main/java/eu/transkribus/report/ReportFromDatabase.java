@@ -67,15 +67,28 @@ public class ReportFromDatabase implements ReportDatabaseInterface {
 		return sqlAgo;
 	}
 
-	public static void sendReportMail(File[] files) {
+	public static void sendReportMail(File[] files, int timePeriod) {
 
 		List<String> mailingList = ReportDatabaseInterface.mailingList();
+		String reportTime = null;
+		
+		switch (timePeriod) {
+			
+		case 1: reportTime = "Daily";
+				break;
+		case 7: reportTime = "Weekly";
+				break;
+		case 30: reportTime = "Monthly";
+				break;
+		
+		}
+		
 
 		for (String mailTo : mailingList) {
 
 			try {
 				MailUtils.TRANSKRIBUS_UIBK_MAIL_SERVER
-						.sendMailSSL(mailTo, "Report from " + sqlTimeNow(),
+						.sendMailSSL(mailTo, reportTime+ " report from " + sqlTimeAgo(timePeriod)+ " to " + sqlTimeNow(),
 								"This is the latest report from " + sqlTimeNow()
 										+ " including a PDF with charts and XLS with detailed user data",
 								files, "", false);
@@ -140,7 +153,7 @@ public class ReportFromDatabase implements ReportDatabaseInterface {
 
 			File xlsFile = new File("report/Report_" + sqlTimeNow().toString() + ".xls");
 
-			sendReportMail(new File[] { pdfFile, xlsFile });
+			sendReportMail(new File[] { pdfFile, xlsFile }, timePeriod);
 			// sendReportMail(files);
 
 		} catch (Exception e) {
