@@ -378,7 +378,10 @@ public class ReportFromDatabase implements ReportDatabaseInterface {
 		Map<String, Object[]> excelData = new HashMap<String, Object[]>();
 		Map<String, Object[]> excelData2 = new HashMap<String, Object[]>();
 		Map<String, Object[]> excelData3 = new HashMap<String, Object[]>();
-		int rowCount = 0;
+		
+		int rowCount1 = 0;
+		int rowCount2 = 0;
+		int rowCount3 = 0;
 
 		PreparedStatement prep = conn.prepareStatement(sql);
 		PreparedStatement prep2 = conn.prepareStatement(sql2);
@@ -397,7 +400,7 @@ public class ReportFromDatabase implements ReportDatabaseInterface {
 
 		while (rs.next() && rs2.next() && rs3.next()) {
 
-			rowCount = rowCount + 1;
+			rowCount1 = rowCount1 + 1;
 			int actionId = rs.getInt("action_id");
 			String userLogin = rs.getString("user_name");
 			String userAgent = rs.getString("useragent");
@@ -406,6 +409,16 @@ public class ReportFromDatabase implements ReportDatabaseInterface {
 			String destroyed = rs.getString("destroyed");
 			String guiVersion = rs.getString("gui_version");
 
+			excelData.put(Integer.toString(rowCount1),
+					new Object[] { actionId, userLogin, userAgent, ip, created, destroyed, guiVersion });
+			
+			
+
+		}
+		while(rs2.next()) {
+			
+			rowCount2 = rowCount2 + 1;
+			
 			int imageId = rs2.getInt("docid");
 			String imageKey = rs2.getString("imagekey");
 			String uri = uriBuilder.getImgUri(imageKey, ImgType.view).toString();
@@ -414,7 +427,16 @@ public class ReportFromDatabase implements ReportDatabaseInterface {
 			String title = rs2.getString("title");
 			String author = rs2.getString("author");
 			String created2 = rs2.getString("tags_stored");
-
+			
+			excelData2.put(Integer.toString(rowCount2),
+					new Object[] { imageId, uri, imageFile, uploader, title, author, created2 });
+			
+			
+		}
+		while(rs3.next()) {
+			
+			rowCount3 = rowCount3 + 1;
+			
 			int jobid = rs3.getInt("jobid");
 			String userid = rs3.getString("userid");
 			String type = rs3.getString("type");
@@ -423,15 +445,11 @@ public class ReportFromDatabase implements ReportDatabaseInterface {
 			String module = rs3.getString("module_name");
 			String started = rs3.getString("started");
 			String ended = rs3.getString("ended");
-
-			excelData.put(Integer.toString(rowCount),
-					new Object[] { actionId, userLogin, userAgent, ip, created, destroyed, guiVersion });
-			excelData2.put(Integer.toString(rowCount),
-					new Object[] { imageId, uri, imageFile, uploader, title, author, created2 });
-			excelData3.put(Integer.toString(rowCount),
+			
+			excelData3.put(Integer.toString(rowCount3),
 					new Object[] { jobid, userid, type, description, pages, module, started, ended });
-
 		}
+		
 		// load Data into worksheet
 
 		Set<String> keyset = excelData.keySet();
@@ -453,11 +471,11 @@ public class ReportFromDatabase implements ReportDatabaseInterface {
 		Set<String> keyset2 = excelData2.keySet();
 		int rownum2 = 0;
 		for (String key : keyset2) {
-			Row row = sheet2.createRow(rownum2++);
+			Row row2 = sheet2.createRow(rownum2++);
 			Object[] objArr = excelData2.get(key);
 			int cellnum = 0;
 			for (Object obj : objArr) {
-				Cell cell = row.createCell(cellnum++);
+				Cell cell = row2.createCell(cellnum++);
 				if (obj instanceof Integer) {
 					cell.setCellValue((Integer) obj);
 				} else {
@@ -469,11 +487,11 @@ public class ReportFromDatabase implements ReportDatabaseInterface {
 		Set<String> keyset3 = excelData3.keySet();
 		int rownum3 = 0;
 		for (String key : keyset3) {
-			Row row = sheet3.createRow(rownum3++);
+			Row row3 = sheet3.createRow(rownum3++);
 			Object[] objArr = excelData3.get(key);
 			int cellnum = 0;
 			for (Object obj : objArr) {
-				Cell cell = row.createCell(cellnum++);
+				Cell cell = row3.createCell(cellnum++);
 				if (obj instanceof Integer) {
 					cell.setCellValue((Integer) obj);
 				} else {
