@@ -411,7 +411,7 @@ public class ReportFromDatabase implements ReportDatabaseInterface {
 		ResultSet rs2 = prep2.executeQuery();
 		ResultSet rs3 = prep3.executeQuery();
 
-		while (rs.next() && rs2.next() && rs3.next()) {
+		while (rs.next()) {
 
 			rowCount1 = rowCount1 + 1;
 			int actionId = rs.getInt("action_id");
@@ -424,7 +424,6 @@ public class ReportFromDatabase implements ReportDatabaseInterface {
 
 			excelData.put(Integer.toString(rowCount1),
 					new Object[] { actionId, userLogin, userAgent, ip, created, destroyed, guiVersion });
-			
 			
 
 		}
