@@ -54,6 +54,21 @@ import eu.transkribus.persistence.util.MailUtils;
  */
 
 public class ReportFromDatabase implements ReportDatabaseInterface {
+	
+	static int imagesUploaded = 0;
+	static int countJobs = 0;
+	static int countNewUsers = 0;
+	static int countUsers = 0;
+	static String [] mostActiveUsers = new String[6];
+	static String [] mostActiveUsersSave = new String[6];
+	static int countActiveUsers = 0;
+	static int countCreatedDocs = 0;
+	static int countLayoutAnalysis = 0;
+	static int countHTR = 0;
+	static int countKWS = 0;
+	
+	
+	
 
 	public static java.sql.Date sqlTimeNow() {
 		LocalDateTime now = LocalDateTime.now();
@@ -83,14 +98,25 @@ public class ReportFromDatabase implements ReportDatabaseInterface {
 		
 		}
 		
-
+		String messageText = "This is the latest report from " + sqlTimeNow()
+				+ "including a PDF with charts and XLS with detailed user data \n"
+				+"\nImages Uploaded : " +imagesUploaded+ "\n"
+				+"Jobs processed : "+countJobs+" \n"
+				+"New Users : "+countNewUsers+" \n"
+				+"Active Users / Unique Logins : "+countActiveUsers+" \n"
+				+"\nMost Active Users Upload : \n\n"+mostActiveUsers[0]+" \n"+mostActiveUsers[1]+"\n"+mostActiveUsers[3]+"\n"
+				+"\nMost Active Users Save Actions : \n\n"+mostActiveUsersSave[0]+" \n"+mostActiveUsersSave[1]+"\n"+mostActiveUsersSave[3]+"\n"
+				+"\nCount Created Documents: "+countCreatedDocs+ " \n"
+				+"Count Layout Analysis Jobs: "+countLayoutAnalysis+ " \n"
+				+"Count HTR Jobs : "+countHTR+ " \n" 
+				+"Count KWS Jobs : "+countKWS+ " \n";
+		
 		for (String mailTo : mailingList) {
 
 			try {
 				MailUtils.TRANSKRIBUS_UIBK_MAIL_SERVER
 						.sendMailSSL(mailTo, reportTime+ " report from " + sqlTimeAgo(timePeriod)+ " to " + sqlTimeNow(),
-								"This is the latest report from " + sqlTimeNow()
-										+ " including a PDF with charts and XLS with detailed user data",
+								messageText,
 								files, "", false);
 			} catch (MessagingException e) {
 
@@ -110,43 +136,33 @@ public class ReportFromDatabase implements ReportDatabaseInterface {
 			document.open();
 
 			Image failedJobs = Image.getInstance("images/FailedJobs.jpg");
-
 			failedJobs.scalePercent(70);
 
 			Image failedJobsPie = Image.getInstance("images/FailedJobsPie.jpg");
-
 			failedJobsPie.scalePercent(70);
-
+			
 			Image wordsTrained = Image.getInstance("images/WordsTrained.jpg");
-
 			wordsTrained.scalePercent(70);
 
 			Image averageUsers = Image.getInstance("images/AverageUsers.jpg");
-
 			averageUsers.scalePercent(70);
 
 			Image countsCombinedTable = Image.getInstance("images/CountsCombinedTable.jpg");
-
+			
 			Image allActions = Image.getInstance("images/AllActions.jpg");
-
 			allActions.scalePercent(70);
 
 			document.add(new Chunk("Database report from " + sqlTimeAgo(timePeriod) + " to " + sqlTimeNow() + ""));
 			document.add(Chunk.NEWLINE);
-
 			document.add(averageUsers);
 			document.add(wordsTrained);
-
 			document.newPage();
-
 			document.add(failedJobs);
 			document.add(failedJobsPie);
 			document.add(allActions);
-
 			document.add(new Paragraph(
 					"Combined counts of images uploaded,jobs created, HTR models, logins transkribusX and saved Documents"));
 			document.add(Chunk.NEWLINE);
-
 			document.add(countsCombinedTable);
 
 			document.close();
@@ -154,8 +170,7 @@ public class ReportFromDatabase implements ReportDatabaseInterface {
 			File xlsFile = new File("report/Report_" + sqlTimeNow().toString() + ".xls");
 
 			sendReportMail(new File[] { pdfFile, xlsFile }, timePeriod);
-			// sendReportMail(files);
-
+			
 		} catch (Exception e) {
 			e.printStackTrace();
 
@@ -175,6 +190,69 @@ public class ReportFromDatabase implements ReportDatabaseInterface {
 		table.paint(g2D);
 		return tableImage;
 
+	}
+	
+	public static void emailMessage(Connection conn, int timePeriod) throws SQLException {
+		
+		String sqlLogins = "select count(distinct user_id) from actions where type_id = 2 and time between ? and ?";
+		String sqlMostActive = "select distinct username, count (nr_of_pages) as upload  from uploads  where created between ? and ? group by username order by count (nr_of_pages) desc";
+		String sqlMostSaves = "select distinct user_name, count (type_id) from actions where type_id = 1 and time between ? and ? group by user_name order by count (type_id) desc";
+		String sqlLA = "select count(*) from jobs where module_name like 'NcsrLaModule' or module_name like 'LaModule' and started between ? and ?";
+		String sqlHTR = "select count(*) from jobs where module_name like 'CITlabHtrAppModule' and started between ? and ?";
+		String sqlKWS = "select count(*) from jobs where module_name like 'KwsModule' and started between ? and ?";
+		String sqlcreatedDoc = "select count(*) from jobs where type like 'Create Document' and started between ? and ? \n";
+
+		
+		PreparedStatement prep1 = conn.prepareStatement(sqlLogins);
+		PreparedStatement prep2 = conn.prepareStatement(sqlMostActive);
+		PreparedStatement prep3 = conn.prepareStatement(sqlMostSaves);
+		PreparedStatement prep4 = conn.prepareStatement(sqlLA);
+		PreparedStatement prep5 = conn.prepareStatement(sqlHTR);
+		PreparedStatement prep6 = conn.prepareStatement(sqlKWS);
+		PreparedStatement prep7 = conn.prepareStatement(sqlcreatedDoc);
+		
+		prep1.setDate(1, sqlTimeAgo(timePeriod));
+		prep1.setDate(2, sqlTimeNow());
+		
+		prep2.setDate(1, sqlTimeAgo(timePeriod));
+		prep2.setDate(2, sqlTimeNow());
+		
+		prep3.setDate(1, sqlTimeAgo(timePeriod));
+		prep3.setDate(2, sqlTimeNow());
+		
+		prep4.setDate(1, sqlTimeAgo(timePeriod));
+		prep4.setDate(2, sqlTimeNow());
+		
+		prep5.setDate(1, sqlTimeAgo(timePeriod));
+		prep5.setDate(2, sqlTimeNow());
+		
+		prep6.setDate(1, sqlTimeAgo(timePeriod));
+		prep6.setDate(2, sqlTimeNow());
+		
+		prep7.setDate(1, sqlTimeAgo(timePeriod));
+		prep7.setDate(2, sqlTimeNow());
+		
+		ResultSet rs1 = prep1.executeQuery();
+		ResultSet rs2 = prep2.executeQuery();
+		ResultSet rs3 = prep3.executeQuery();
+		ResultSet rs4 = prep4.executeQuery();
+		ResultSet rs5 = prep5.executeQuery();
+		ResultSet rs6 = prep6.executeQuery();
+		ResultSet rs7 = prep7.executeQuery();
+		
+		while (rs1.next() && rs4.next() && rs5.next() && rs6.next() && rs7.next()) {
+			countActiveUsers = rs1.getInt("count(distinctuser_id)");
+			countLayoutAnalysis = rs4.getInt("count(*)");
+			countHTR = rs5.getInt("count(*)");
+			countKWS = rs6.getInt("count(*)");
+			countCreatedDocs = rs7.getInt("count(*)");
+		}
+		for(int i = 0; i <= 5; i++) {
+			rs2.next();
+			rs3.next();
+			mostActiveUsers[i] = "User: "+rs2.getString("username")+" Uploaded Pages: "+rs2.getInt("upload");
+			mostActiveUsersSave[i] = "User: "+rs3.getString("user_name")+" Save Actions: "+rs3.getInt("count(type_id)");
+		}
 	}
 
 	public static void failedJobsChart(Connection conn, int timePeriod) throws SQLException {
@@ -199,6 +277,7 @@ public class ReportFromDatabase implements ReportDatabaseInterface {
 		while (rs.next() && rs2.next()) {
 			int countFailed = rs.getInt("count(*)");
 			int countDone = rs2.getInt("count(*)");
+			countJobs = countFailed + countDone;
 			dataset.addValue(countFailed, "Jobs failed", " ");
 			dataset.addValue(countDone, "Jobs done", " ");
 			piedataset.setValue("Jobs done", countDone);
@@ -562,13 +641,13 @@ public class ReportFromDatabase implements ReportDatabaseInterface {
 		ResultSet rs5 = prep5.executeQuery();
 
 		while (rs.next() && rs2.next() && rs3.next() && rs4.next() && rs5.next()) {
-			int countImage = rs.getInt("count(*)");
-			int countJobs = rs2.getInt("count(*)");
+			imagesUploaded = rs.getInt("count(*)");
+			countJobs = rs2.getInt("count(*)");
 			int countHTR = rs3.getInt("count(*)");
 			int countLogin = rs4.getInt("count(*)");
 			int countSaved = rs5.getInt("count(*)");
 
-			model.addRow(new Object[] { countImage, countJobs, countHTR, countLogin, countSaved });
+			model.addRow(new Object[] { imagesUploaded, countJobs, countHTR, countLogin, countSaved });
 
 		}
 
@@ -610,6 +689,8 @@ public class ReportFromDatabase implements ReportDatabaseInterface {
 			allActionsChart(conn, timePeriod);
 
 			nrLoginsActionsExcel(conn, timePeriod);
+			
+			emailMessage(conn,timePeriod);
 
 			covertJpgToPdf(timePeriod);
 
