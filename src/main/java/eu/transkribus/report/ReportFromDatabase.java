@@ -18,6 +18,7 @@ import java.util.Set;
 
 import javax.imageio.ImageIO;
 import javax.mail.MessagingException;
+import javax.persistence.EntityNotFoundException;
 import javax.swing.JTable;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.JTableHeader;
@@ -34,6 +35,8 @@ import org.jfree.chart.JFreeChart;
 import org.jfree.chart.plot.PlotOrientation;
 import org.jfree.data.category.DefaultCategoryDataset;
 import org.jfree.data.general.DefaultPieDataset;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.itextpdf.text.Chunk;
 import com.itextpdf.text.Document;
@@ -42,8 +45,10 @@ import com.itextpdf.text.Paragraph;
 import com.itextpdf.text.pdf.PdfWriter;
 
 import eu.transkribus.core.io.FimgStoreReadConnection;
+import eu.transkribus.core.model.beans.auth.TrpUser;
 import eu.transkribus.persistence.DbConnection;
 import eu.transkribus.persistence.DbConnection.DbConfig;
+import eu.transkribus.persistence.dao.UserDao;
 import eu.transkribus.persistence.util.MailUtils;
 
 /*
@@ -54,6 +59,7 @@ import eu.transkribus.persistence.util.MailUtils;
  */
 
 public class ReportFromDatabase implements ReportDatabaseInterface {
+	private final static Logger logger = LoggerFactory.getLogger(ReportFromDatabase.class);
 	
 	static int imagesUploaded = 0;
 	static int countJobs = 0;
@@ -66,9 +72,6 @@ public class ReportFromDatabase implements ReportDatabaseInterface {
 	static int countLayoutAnalysis = 0;
 	static int countHTR = 0;
 	static int countKWS = 0;
-	
-	
-	
 
 	public static java.sql.Date sqlTimeNow() {
 		LocalDateTime now = LocalDateTime.now();
@@ -194,6 +197,14 @@ public class ReportFromDatabase implements ReportDatabaseInterface {
 	
 	public static void emailMessage(Connection conn, int timePeriod) throws SQLException {
 		
+		UserDao dao = new UserDao();
+		try {
+			List<TrpUser> userList = dao.getUserByDate(sqlTimeAgo(timePeriod), true);
+			countNewUsers = userList.size();
+		} catch (EntityNotFoundException | SQLException e) {
+			e.printStackTrace();
+		}
+		
 		String sqlLogins = "select count(distinct user_id) from actions where type_id = 2 and time between ? and ?";
 		String sqlMostActive = "select distinct username, count (nr_of_pages) as upload  from uploads  where created between ? and ? group by username order by count (nr_of_pages) desc";
 		String sqlMostSaves = "select distinct user_name, count (type_id) from actions where type_id = 1 and time between ? and ? group by user_name order by count (type_id) desc";
@@ -253,6 +264,8 @@ public class ReportFromDatabase implements ReportDatabaseInterface {
 			mostActiveUsers[i] = "User: "+rs2.getString("username")+" Uploaded Pages: "+rs2.getInt("upload");
 			mostActiveUsersSave[i] = "User: "+rs3.getString("user_name")+" Save Actions: "+rs3.getInt("count(type_id)");
 		}
+		
+		
 	}
 
 	public static void failedJobsChart(Connection conn, int timePeriod) throws SQLException {
