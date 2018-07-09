@@ -109,7 +109,7 @@ public class ReportFromDatabase implements ReportDatabaseInterface {
 				+"\nImages Uploaded : " +imagesUploaded+ "\n"
 				+"New Users : "+countNewUsers+" \n"
 				+"Active Users / Unique Logins : "+countActiveUsers+" \n"
-				+"\nMost Active Users Upload : \n\n"+mostActiveUsers[0]+" \n"+mostActiveUsers[1]+"\n"+mostActiveUsers[3]+"\n"
+				+"\nMost Active Users Image Uploads : \n\n"+mostActiveUsers[0]+" \n"+mostActiveUsers[1]+"\n"+mostActiveUsers[3]+"\n"
 				+"\nMost Active Users Save Actions : \n\n"+mostActiveUsersSave[0]+" \n"+mostActiveUsersSave[1]+"\n"+mostActiveUsersSave[3]+"\n"
 				+"\nJobs processed in total: "+countJobs+" \n"
 				+"\nCount Created Documents: "+countCreatedDocs+ " \n"
@@ -212,7 +212,7 @@ public class ReportFromDatabase implements ReportDatabaseInterface {
 		}
 		
 		String sqlLogins = "select count(distinct user_id) from actions where type_id = 2 and time between ? and ?";
-		String sqlMostActive = "select distinct username, count (nr_of_pages) as upload  from uploads  where created between ? and ? group by username order by count (nr_of_pages) desc";
+		String sqlMostActive = "select distinct uploader, count (distinct images.image_id) from images join pages on IMAGES.IMAGE_ID = PAGES.IMAGE_ID join doc_md on PAGES.DOCID = DOC_MD.DOCID where created between ? and ? group by uploader order by count(distinct images.image_id) desc";
 		String sqlMostSaves = "select distinct user_name, count (type_id) from actions where type_id = 1 and time between ? and ? group by user_name order by count (type_id) desc";
 		String sqlLA = "select count(*) from jobs where (module_name like 'NcsrLaModule' or module_name like 'LaModule') and started between ? and ?";
 		String sqlHTR = "select count(*) from jobs where module_name like 'CITlabHtrAppModule' and started between ? and ?";
@@ -230,6 +230,7 @@ public class ReportFromDatabase implements ReportDatabaseInterface {
 		PreparedStatement prep5 = conn.prepareStatement(sqlHTR);
 		PreparedStatement prep6 = conn.prepareStatement(sqlKWS);
 		PreparedStatement prep7 = conn.prepareStatement(sqlcreatedDoc);
+		
 		PreparedStatement prep8 = conn.prepareStatement(sqlDuplDoc);
 		PreparedStatement prep9 = conn.prepareStatement(sqlExpDoc);
 		PreparedStatement prep10 = conn.prepareStatement(sqlDelDoc);
@@ -288,7 +289,7 @@ public class ReportFromDatabase implements ReportDatabaseInterface {
 		for(int i = 0; i <= 5; i++) {
 			rs2.next();
 			rs3.next();
-			mostActiveUsers[i] = "User: "+rs2.getString("username")+" Uploaded Pages: "+rs2.getInt("upload");
+			mostActiveUsers[i] = "User: "+rs2.getString("uploader")+" Uploaded Images: "+rs2.getInt("count(distinctimages.image_id)");
 			mostActiveUsersSave[i] = "User: "+rs3.getString("user_name")+" Save Actions: "+rs3.getInt("count(type_id)");
 		}
 		
