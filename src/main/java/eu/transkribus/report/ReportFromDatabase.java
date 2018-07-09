@@ -69,6 +69,9 @@ public class ReportFromDatabase implements ReportDatabaseInterface {
 	static String [] mostActiveUsersSave = new String[6];
 	static int countActiveUsers = 0;
 	static int countCreatedDocs = 0;
+	static int countDuplDocs = 0;
+	static int countExpDocs = 0;
+	static int countDelDocs = 0;
 	static int countLayoutAnalysis = 0;
 	static int countHTR = 0;
 	static int countKWS = 0;
@@ -104,12 +107,15 @@ public class ReportFromDatabase implements ReportDatabaseInterface {
 		String messageText = "This is the latest report from " + sqlTimeNow()
 				+ "including a PDF with charts and XLS with detailed user data \n"
 				+"\nImages Uploaded : " +imagesUploaded+ "\n"
-				+"Jobs processed : "+countJobs+" \n"
 				+"New Users : "+countNewUsers+" \n"
 				+"Active Users / Unique Logins : "+countActiveUsers+" \n"
 				+"\nMost Active Users Upload : \n\n"+mostActiveUsers[0]+" \n"+mostActiveUsers[1]+"\n"+mostActiveUsers[3]+"\n"
 				+"\nMost Active Users Save Actions : \n\n"+mostActiveUsersSave[0]+" \n"+mostActiveUsersSave[1]+"\n"+mostActiveUsersSave[3]+"\n"
+				+"\nJobs processed in total: "+countJobs+" \n"
 				+"\nCount Created Documents: "+countCreatedDocs+ " \n"
+				+"Count Duplicated Documents: "+countDuplDocs+ " \n"
+				+"Count Export Documents: "+countExpDocs+ " \n"
+				+"Count Deleted Documents: "+countDelDocs+ " \n"
 				+"Count Layout Analysis Jobs: "+countLayoutAnalysis+ " \n"
 				+"Count HTR Jobs : "+countHTR+ " \n" 
 				+"Count KWS Jobs : "+countKWS+ " \n";
@@ -211,7 +217,10 @@ public class ReportFromDatabase implements ReportDatabaseInterface {
 		String sqlLA = "select count(*) from jobs where (module_name like 'NcsrLaModule' or module_name like 'LaModule') and started between ? and ?";
 		String sqlHTR = "select count(*) from jobs where module_name like 'CITlabHtrAppModule' and started between ? and ?";
 		String sqlKWS = "select count(*) from jobs where module_name like 'KwsModule' and started between ? and ?";
-		String sqlcreatedDoc = "select count(*) from jobs where type like 'Create Document' and started between ? and ? \n";
+		String sqlcreatedDoc = "select count(*) from jobs where type like 'Create Document' and started between ? and ?";
+		String sqlDuplDoc = "select count(*) from jobs where type like 'Duplicate Document' and started between ? and ?";
+		String sqlExpDoc = "select count(*) from jobs where type like 'Export Document' and started between ? and ?";
+		String sqlDelDoc = "select count(*) from jobs where type like 'Delete Document' and started between ? and ?";
 
 		
 		PreparedStatement prep1 = conn.prepareStatement(sqlLogins);
@@ -221,6 +230,9 @@ public class ReportFromDatabase implements ReportDatabaseInterface {
 		PreparedStatement prep5 = conn.prepareStatement(sqlHTR);
 		PreparedStatement prep6 = conn.prepareStatement(sqlKWS);
 		PreparedStatement prep7 = conn.prepareStatement(sqlcreatedDoc);
+		PreparedStatement prep8 = conn.prepareStatement(sqlDuplDoc);
+		PreparedStatement prep9 = conn.prepareStatement(sqlExpDoc);
+		PreparedStatement prep10 = conn.prepareStatement(sqlDelDoc);
 		
 		prep1.setDate(1, sqlTimeAgo(timePeriod));
 		prep1.setDate(2, sqlTimeNow());
@@ -243,6 +255,15 @@ public class ReportFromDatabase implements ReportDatabaseInterface {
 		prep7.setDate(1, sqlTimeAgo(timePeriod));
 		prep7.setDate(2, sqlTimeNow());
 		
+		prep8.setDate(1, sqlTimeAgo(timePeriod));
+		prep8.setDate(2, sqlTimeNow());
+		
+		prep9.setDate(1, sqlTimeAgo(timePeriod));
+		prep9.setDate(2, sqlTimeNow());
+		
+		prep10.setDate(1, sqlTimeAgo(timePeriod));
+		prep10.setDate(2, sqlTimeNow());
+		
 		ResultSet rs1 = prep1.executeQuery();
 		ResultSet rs2 = prep2.executeQuery();
 		ResultSet rs3 = prep3.executeQuery();
@@ -250,13 +271,19 @@ public class ReportFromDatabase implements ReportDatabaseInterface {
 		ResultSet rs5 = prep5.executeQuery();
 		ResultSet rs6 = prep6.executeQuery();
 		ResultSet rs7 = prep7.executeQuery();
+		ResultSet rs8 = prep8.executeQuery();
+		ResultSet rs9 = prep9.executeQuery();
+		ResultSet rs10 = prep10.executeQuery();
 		
-		while (rs1.next() && rs4.next() && rs5.next() && rs6.next() && rs7.next()) {
+		while (rs1.next() && rs4.next() && rs5.next() && rs6.next() && rs7.next() && rs8.next() && rs9.next() && rs10.next()) {
 			countActiveUsers = rs1.getInt("count(distinctuser_id)");
 			countLayoutAnalysis = rs4.getInt("count(*)");
 			countHTR = rs5.getInt("count(*)");
 			countKWS = rs6.getInt("count(*)");
 			countCreatedDocs = rs7.getInt("count(*)");
+			countDuplDocs = rs8.getInt("count(*)");
+			countExpDocs = rs9.getInt("count(*)");
+			countDelDocs = rs10.getInt("count(*)");
 		}
 		for(int i = 0; i <= 5; i++) {
 			rs2.next();
