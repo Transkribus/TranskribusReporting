@@ -620,7 +620,7 @@ public class ReportFromDatabase implements ReportDatabaseInterface {
 		DefaultTableModel model = new DefaultTableModel(new String[] { "Images uploaded", "Jobs created ",
 				"HTR Models created", "Login TranskribusX", "Saved Documents" }, 0);
 
-		String sqlImages = "select count(*) from pages where docid in (select docid from jobs where  TYPE = 'Create Document' AND STARTED between ? and ?)";
+		String sqlImages = "select count(*) from images join pages on IMAGES.IMAGE_ID = PAGES.IMAGE_ID join doc_md on PAGES.DOCID = DOC_MD.DOCID where tags_stored between ? and ?";
 		String sqlJobs = "select count(*) from jobs where docid in (select docid from jobs where  TYPE = 'Create Document' AND STARTED between ? and  ?)";
 		String sqlHTR = "select count(*) from HTR where created between ? and ?";
 		String sqlLogin = "select count(*) from actions a join session_history sh on a.session_history_id = sh.session_history_id where a.type_id = 2 AND sh.useragent like 'Jersey%' AND time between ? and ?";
