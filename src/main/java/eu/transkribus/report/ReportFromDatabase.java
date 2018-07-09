@@ -208,7 +208,7 @@ public class ReportFromDatabase implements ReportDatabaseInterface {
 		String sqlLogins = "select count(distinct user_id) from actions where type_id = 2 and time between ? and ?";
 		String sqlMostActive = "select distinct username, count (nr_of_pages) as upload  from uploads  where created between ? and ? group by username order by count (nr_of_pages) desc";
 		String sqlMostSaves = "select distinct user_name, count (type_id) from actions where type_id = 1 and time between ? and ? group by user_name order by count (type_id) desc";
-		String sqlLA = "select count(*) from jobs where module_name like 'NcsrLaModule' or module_name like 'LaModule' and started between ? and ?";
+		String sqlLA = "select count(*) from jobs where (module_name like 'NcsrLaModule' or module_name like 'LaModule') and started between ? and ?";
 		String sqlHTR = "select count(*) from jobs where module_name like 'CITlabHtrAppModule' and started between ? and ?";
 		String sqlKWS = "select count(*) from jobs where module_name like 'KwsModule' and started between ? and ?";
 		String sqlcreatedDoc = "select count(*) from jobs where type like 'Create Document' and started between ? and ? \n";
@@ -621,7 +621,7 @@ public class ReportFromDatabase implements ReportDatabaseInterface {
 				"HTR Models created", "Login TranskribusX", "Saved Documents" }, 0);
 
 		String sqlImages = "select count(*) from images join pages on IMAGES.IMAGE_ID = PAGES.IMAGE_ID join doc_md on PAGES.DOCID = DOC_MD.DOCID where tags_stored between ? and ?";
-		String sqlJobs = "select count(*) from jobs where docid in (select docid from jobs where  TYPE = 'Create Document' AND STARTED between ? and  ?)";
+		String sqlJobs = "select count(*) from jobs where started between ? and ? order by started desc";
 		String sqlHTR = "select count(*) from HTR where created between ? and ?";
 		String sqlLogin = "select count(*) from actions a join session_history sh on a.session_history_id = sh.session_history_id where a.type_id = 2 AND sh.useragent like 'Jersey%' AND time between ? and ?";
 		String sqlSaved = "select count(*) from actions where type_id = 1 and time between ? and ?";
