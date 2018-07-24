@@ -29,6 +29,7 @@
 				<include>logback.xml</include>
 				<include>c3p0-config.xml</include>
 				<include>email.properties</include>
+				<include>TranskribusReport.sh</include>
 			</includes>
 		</fileSet>
 	</fileSets>
