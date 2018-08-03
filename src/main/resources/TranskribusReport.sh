@@ -1,2 +1,3 @@
 #!/bin/bash
-java -DHOST_NAME=`hostname` -jar ${appName}-${project.version}.jar $@
+BASEDIR=$(dirname $0)
+java -DHOST_NAME=`hostname` -jar $BASEDIR/${appName}-${project.version}.jar $@
