@@ -12,6 +12,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.time.LocalDateTime;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -46,6 +47,7 @@ import com.itextpdf.text.pdf.PdfWriter;
 
 import eu.transkribus.core.io.FimgStoreReadConnection;
 import eu.transkribus.core.model.beans.auth.TrpUser;
+import eu.transkribus.core.util.*;
 import eu.transkribus.persistence.DbConnection;
 import eu.transkribus.persistence.DbConnection.DbConfig;
 import eu.transkribus.persistence.dao.UserDao;
@@ -75,6 +77,9 @@ public class ReportFromDatabase implements ReportDatabaseInterface {
 	static int countLayoutAnalysis = 0;
 	static int countHTR = 0;
 	static int countKWS = 0;
+	static int countTags = 0;
+	// TODO List count of tags & msot common tags
+	static Set <Integer> pageIndices = new HashSet<Integer>();
 
 	public static java.sql.Date sqlTimeNow() {
 		LocalDateTime now = LocalDateTime.now();
@@ -118,7 +123,9 @@ public class ReportFromDatabase implements ReportDatabaseInterface {
 				+"Count Deleted Documents: "+countDelDocs+ " \n"
 				+"Count Layout Analysis Jobs: "+countLayoutAnalysis+ " \n"
 				+"Count HTR Jobs : "+countHTR+ " \n" 
-				+"Count KWS Jobs : "+countKWS+ " \n";
+				+"Pages run with HTR : "+pageIndices.size()+" \n"
+				+"Count KWS Jobs : "+countKWS+ " \n"
+				+"Count Tags : "+countTags;
 		
 		for (String mailTo : mailingList) {
 
@@ -221,6 +228,8 @@ public class ReportFromDatabase implements ReportDatabaseInterface {
 		String sqlDuplDoc = "select count(*) from jobs where type like 'Duplicate Document' and started between ? and ?";
 		String sqlExpDoc = "select count(*) from jobs where type like 'Export Document' and started between ? and ?";
 		String sqlDelDoc = "select count(*) from jobs where type like 'Delete Document' and started between ? and ?";
+		String sqlHtrPages = "select pages,docid from jobs where module_name like 'CITlabHtrAppModule' and started between ? and ?";
+		String sqlTags = "select count(*) tags";
 
 		
 		PreparedStatement prep1 = conn.prepareStatement(sqlLogins);
@@ -234,6 +243,7 @@ public class ReportFromDatabase implements ReportDatabaseInterface {
 		PreparedStatement prep8 = conn.prepareStatement(sqlDuplDoc);
 		PreparedStatement prep9 = conn.prepareStatement(sqlExpDoc);
 		PreparedStatement prep10 = conn.prepareStatement(sqlDelDoc);
+		PreparedStatement prep11 = conn.prepareStatement(sqlHtrPages);
 		
 		prep1.setDate(1, sqlTimeAgo(timePeriod));
 		prep1.setDate(2, sqlTimeNow());
@@ -265,6 +275,9 @@ public class ReportFromDatabase implements ReportDatabaseInterface {
 		prep10.setDate(1, sqlTimeAgo(timePeriod));
 		prep10.setDate(2, sqlTimeNow());
 		
+		prep11.setDate(1, sqlTimeAgo(timePeriod));
+		prep11.setDate(2, sqlTimeNow());
+		
 		ResultSet rs1 = prep1.executeQuery();
 		ResultSet rs2 = prep2.executeQuery();
 		ResultSet rs3 = prep3.executeQuery();
@@ -275,8 +288,9 @@ public class ReportFromDatabase implements ReportDatabaseInterface {
 		ResultSet rs8 = prep8.executeQuery();
 		ResultSet rs9 = prep9.executeQuery();
 		ResultSet rs10 = prep10.executeQuery();
+		ResultSet rs11 = prep11.executeQuery();
 		
-		while (rs1.next() && rs4.next() && rs5.next() && rs6.next() && rs7.next() && rs8.next() && rs9.next() && rs10.next()) {
+		while (rs1.next() && rs4.next() && rs5.next() && rs6.next() && rs7.next() && rs8.next() && rs9.next() && rs10.next() && rs11.next()) {
 			countActiveUsers = rs1.getInt("count(distinctuser_id)");
 			countLayoutAnalysis = rs4.getInt("count(*)");
 			countHTR = rs5.getInt("count(*)");
@@ -285,6 +299,14 @@ public class ReportFromDatabase implements ReportDatabaseInterface {
 			countDuplDocs = rs8.getInt("count(*)");
 			countExpDocs = rs9.getInt("count(*)");
 			countDelDocs = rs10.getInt("count(*)");
+			if(rs11.getString("pages") != null){
+				try {
+					pageIndices = CoreUtils.parseRangeListStr(rs11.getString("pages"),rs11.getInt("docid"));
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+			}
+			
 		}
 		for(int i = 0; i <= 5; i++) {
 			rs2.next();
