@@ -47,7 +47,7 @@ import com.itextpdf.text.pdf.PdfWriter;
 
 import eu.transkribus.core.io.FimgStoreReadConnection;
 import eu.transkribus.core.model.beans.auth.TrpUser;
-import eu.transkribus.core.util.*;
+import eu.transkribus.core.util.CoreUtils;
 import eu.transkribus.persistence.DbConnection;
 import eu.transkribus.persistence.DbConnection.DbConfig;
 import eu.transkribus.persistence.dao.UserDao;
@@ -136,8 +136,7 @@ public class ReportFromDatabase implements ReportDatabaseInterface {
 								messageText,
 								files, "", false, true);
 			} catch (MessagingException e) {
-
-				e.printStackTrace();
+				logger.error("Could not send mail to " + mailTo, e);
 			}
 		}
 
@@ -189,8 +188,7 @@ public class ReportFromDatabase implements ReportDatabaseInterface {
 			sendReportMail(new File[] { pdfFile, xlsFile }, timePeriod);
 			
 		} catch (Exception e) {
-			e.printStackTrace();
-
+			logger.error(e.getMessage(), e);
 		}
 
 	}
@@ -216,7 +214,7 @@ public class ReportFromDatabase implements ReportDatabaseInterface {
 			List<TrpUser> userList = dao.getUserByDate(sqlTimeAgo(timePeriod), true);
 			countNewUsers = userList.size();
 		} catch (EntityNotFoundException | SQLException e) {
-			e.printStackTrace();
+			logger.error(e.getMessage(), e);
 		}
 		
 		String sqlLogins = "select count(distinct user_id) from actions where type_id = 2 and time between ? and ?";
@@ -304,7 +302,7 @@ public class ReportFromDatabase implements ReportDatabaseInterface {
 				try {
 					pageIndices = CoreUtils.parseRangeListStr(rs11.getString("pages"),rs11.getInt("docid"));
 				} catch (IOException e) {
-					e.printStackTrace();
+					logger.error(e.getMessage(), e);
 				}
 			}
 			
@@ -365,8 +363,7 @@ public class ReportFromDatabase implements ReportDatabaseInterface {
 			ChartUtilities.saveChartAsJPEG(BarChart, quality, barChart, width, height);
 			ChartUtilities.saveChartAsJPEG(PieChart, quality, pieChart, width, height);
 		} catch (IOException e) {
-
-			e.printStackTrace();
+			logger.error(e.getMessage(), e);
 		}
 
 	}
@@ -424,8 +421,7 @@ public class ReportFromDatabase implements ReportDatabaseInterface {
 		try {
 			ChartUtilities.saveChartAsJPEG(BarChart, quality, barChart, width, height);
 		} catch (IOException e) {
-
-			e.printStackTrace();
+			logger.error(e.getMessage(), e);
 		}
 
 	}
@@ -468,8 +464,7 @@ public class ReportFromDatabase implements ReportDatabaseInterface {
 		try {
 			ChartUtilities.saveChartAsJPEG(BarChart, quality, barChart, width, height);
 		} catch (IOException e) {
-
-			e.printStackTrace();
+			logger.error(e.getMessage(), e);
 		}
 
 	}
@@ -512,8 +507,7 @@ public class ReportFromDatabase implements ReportDatabaseInterface {
 		try {
 			ChartUtilities.saveChartAsJPEG(BarChart, quality, barChart, width, height);
 		} catch (IOException e) {
-
-			e.printStackTrace();
+			logger.error(e.getMessage(), e);
 		}
 
 	}
@@ -661,7 +655,7 @@ public class ReportFromDatabase implements ReportDatabaseInterface {
 			file.close();
 			workbook.close();
 		} catch (IOException e) {
-			e.printStackTrace();
+			logger.error(e.getMessage(), e);
 		}
 
 	}
@@ -728,7 +722,7 @@ public class ReportFromDatabase implements ReportDatabaseInterface {
 			ImageIO.write(img, "jpg", outputfile);
 		} catch (IOException e) {
 
-			e.printStackTrace();
+			logger.error(e.getMessage(), e);
 		}
 
 	}
@@ -761,7 +755,7 @@ public class ReportFromDatabase implements ReportDatabaseInterface {
 		}
 
 		catch (SQLException e) {
-			e.printStackTrace();
+			logger.error("A database operation failed.", e);
 
 		}
 
