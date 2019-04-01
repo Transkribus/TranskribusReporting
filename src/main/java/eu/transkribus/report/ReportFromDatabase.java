@@ -634,7 +634,7 @@ public class ReportFromDatabase implements ReportDatabaseInterface {
 				}
 			}
 		}catch(IllegalArgumentException e) {
-			logger.debug("Excel generation failed due to too many rows");
+			logger.error("Excel generation failed due to too many rows", e);
 		}
 
 		Set<String> keyset3 = excelData3.keySet();
