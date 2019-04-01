@@ -110,7 +110,7 @@ public class ReportFromDatabase implements ReportDatabaseInterface {
 		}
 		
 		String messageText = "This is the latest report from " + sqlTimeNow()
-				+ "including a PDF with charts and XLS with detailed user data \n"
+				+ " including a PDF with charts and XLS with detailed user data \n"
 				+"\nImages Uploaded : " +imagesUploaded+ "\n"
 				+"New Users : "+countNewUsers+" \n"
 				+"Active Users / Unique Logins : "+countActiveUsers+" \n"
@@ -134,7 +134,7 @@ public class ReportFromDatabase implements ReportDatabaseInterface {
 				MailUtils.TRANSKRIBUS_UIBK_MAIL_SERVER
 						.sendMail(mailTo, reportTime+ " report from " + sqlTimeAgo(timePeriod)+ " to " + sqlTimeNow(),
 								messageText,
-								files, "", false, true);
+								files, "", false, false);
 			} catch (MessagingException e) {
 
 				e.printStackTrace();
@@ -625,18 +625,22 @@ public class ReportFromDatabase implements ReportDatabaseInterface {
 
 		Set<String> keyset2 = excelData2.keySet();
 		int rownum2 = 0;
-		for (String key : keyset2) {
-			Row row2 = sheet2.createRow(rownum2++);
-			Object[] objArr = excelData2.get(key);
-			int cellnum = 0;
-			for (Object obj : objArr) {
-				Cell cell = row2.createCell(cellnum++);
-				if (obj instanceof Integer) {
-					cell.setCellValue((Integer) obj);
-				} else {
-					cell.setCellValue((String) obj);
+		try {
+			for (String key : keyset2) {
+				Row row2 = sheet2.createRow(rownum2++);
+				Object[] objArr = excelData2.get(key);
+				int cellnum = 0;
+				for (Object obj : objArr) {
+					Cell cell = row2.createCell(cellnum++);
+					if (obj instanceof Integer) {
+						cell.setCellValue((Integer) obj);
+					} else {
+						cell.setCellValue((String) obj);
+					}
 				}
 			}
+		}catch(IllegalArgumentException e) {
+			logger.debug("Excel generation failed due to too many rows");
 		}
 
 		Set<String> keyset3 = excelData3.keySet();
