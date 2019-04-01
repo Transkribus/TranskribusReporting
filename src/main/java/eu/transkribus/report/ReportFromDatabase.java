@@ -130,10 +130,11 @@ public class ReportFromDatabase implements ReportDatabaseInterface {
 		for (String mailTo : mailingList) {
 
 			try {
+
 				MailUtils.TRANSKRIBUS_UIBK_MAIL_SERVER
-						.sendMailSSL(mailTo, reportTime+ " report from " + sqlTimeAgo(timePeriod)+ " to " + sqlTimeNow(),
+						.sendMail(mailTo, reportTime+ " report from " + sqlTimeAgo(timePeriod)+ " to " + sqlTimeNow(),
 								messageText,
-								files, "", false);
+								files, "", false, true);
 			} catch (MessagingException e) {
 
 				e.printStackTrace();
