@@ -16,6 +16,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 import javax.imageio.ImageIO;
 import javax.mail.MessagingException;
@@ -62,6 +63,9 @@ import eu.transkribus.persistence.util.MailUtils;
 
 public class ReportFromDatabase implements ReportDatabaseInterface {
 	private final static Logger logger = LoggerFactory.getLogger(ReportFromDatabase.class);
+	private final static String HTR_MODULE = "CITlabHtrJob";
+	private final static String OCR_MODULE = "FinereaderOcrJob";
+	private final static String LA_MODULE = "CITlabAdvancedLaJobMultiThread";
 	
 	static int imagesUploaded = 0;
 	static int countJobs = 0;
@@ -69,6 +73,14 @@ public class ReportFromDatabase implements ReportDatabaseInterface {
 	static int countUsers = 0;
 	static String [] mostActiveUsers = new String[6];
 	static String [] mostActiveUsersSave = new String[6];
+	static String [] trainingTime = new String[6];
+	static String [] htrRunTime = new String[6];
+	static String [] ocrRunTime = new String[6];
+	static String [] laRunTime = new String[6];
+	static String totalTrainingTime;
+	static String totalHtrTime;
+	static String totalOcrTime;
+	static String totalLaTime;
 	static int countActiveUsers = 0;
 	static int countCreatedDocs = 0;
 	static int countDuplDocs = 0;
@@ -78,7 +90,6 @@ public class ReportFromDatabase implements ReportDatabaseInterface {
 	static int countHTR = 0;
 	static int countKWS = 0;
 	static int countTags = 0;
-	// TODO List count of tags & msot common tags
 	static Set <Integer> pageIndices = new HashSet<Integer>();
 
 	public static java.sql.Date sqlTimeNow() {
@@ -110,22 +121,23 @@ public class ReportFromDatabase implements ReportDatabaseInterface {
 		}
 		
 		String messageText = "This is the latest report from " + sqlTimeNow()
-				+ " including a PDF with charts and XLS with detailed user data \n"
+				+ " with detailed user data \n"
 				+"\nImages Uploaded : " +imagesUploaded+ "\n"
 				+"New Users : "+countNewUsers+" \n"
 				+"Active Users / Unique Logins : "+countActiveUsers+" \n"
 				+"\nMost Active Users Image Uploads : \n\n"+mostActiveUsers[0]+" \n"+mostActiveUsers[1]+"\n"+mostActiveUsers[2]+"\n"+mostActiveUsers[3]+"\n"+mostActiveUsers[4]+"\n"
 				+"\nMost Active Users Save Actions : \n\n"+mostActiveUsersSave[0]+" \n"+mostActiveUsersSave[1]+"\n"+mostActiveUsersSave[2]+"\n"+mostActiveUsersSave[3]+"\n"+mostActiveUsersSave[4]+"\n"
+				+"\nMost Training Runtime : \nTOTAL : "+totalTrainingTime+ " \n"+trainingTime[0]+" \n"+trainingTime[1]+"\n"+trainingTime[2]+"\n"+trainingTime[3]+"\n"+trainingTime[4]+"\n"
+				+"\nMost HTR Runtime : \nTOTAL : "+totalHtrTime+ " \n"+htrRunTime[0]+" \n"+htrRunTime[1]+"\n"+htrRunTime[2]+"\n"+htrRunTime[3]+"\n"+htrRunTime[4]+"\n"
+				+"\nMost OCR Runtime : \nTOTAL : "+totalOcrTime+ " \n"+ocrRunTime[0]+" \n"+ocrRunTime[1]+"\n"+ocrRunTime[2]+"\n"+ocrRunTime[3]+"\n"+ocrRunTime[4]+"\n"
+				+"\nMost LA Runtime : \nTOTAL : "+totalLaTime+ " \n"+laRunTime[0]+" \n"+laRunTime[1]+"\n"+laRunTime[2]+"\n"+laRunTime[3]+"\n"+laRunTime[4]+"\n"
 				+"\nJobs processed in total: "+countJobs+" \n"
 				+"\nCount Created Documents: "+countCreatedDocs+ " \n"
 				+"Count Duplicated Documents: "+countDuplDocs+ " \n"
 				+"Count Export Documents: "+countExpDocs+ " \n"
 				+"Count Deleted Documents: "+countDelDocs+ " \n"
 				+"Count Layout Analysis Jobs: "+countLayoutAnalysis+ " \n"
-				+"Count HTR Jobs : "+countHTR+ " \n" 
-				+"Pages run with HTR : "+pageIndices.size()+" \n"
-				+"Count KWS Jobs : "+countKWS+ " \n"
-				+"Count Tags : "+countTags;
+				+"Count HTR Jobs : "+countHTR+ " \n" ;
 		
 		for (String mailTo : mailingList) {
 
@@ -228,8 +240,8 @@ public class ReportFromDatabase implements ReportDatabaseInterface {
 		String sqlExpDoc = "select count(*) from jobs where type like 'Export Document' and started between ? and ?";
 		String sqlDelDoc = "select count(*) from jobs where type like 'Delete Document' and started between ? and ?";
 		String sqlHtrPages = "select pages,docid from jobs where module_name like 'CITlabHtrAppModule' and started between ? and ?";
-		String sqlTags = "select count(*) tags";
-
+		String sqlImages = "select count(*) from images join pages on IMAGES.IMAGE_ID = PAGES.IMAGE_ID join doc_md on PAGES.DOCID = DOC_MD.DOCID where images.created between ? and ?";
+		String sqlJobs = "select count(*) from jobs where started between ? and ? order by started desc";
 		
 		PreparedStatement prep1 = conn.prepareStatement(sqlLogins);
 		PreparedStatement prep2 = conn.prepareStatement(sqlMostActive);
@@ -243,6 +255,8 @@ public class ReportFromDatabase implements ReportDatabaseInterface {
 		PreparedStatement prep9 = conn.prepareStatement(sqlExpDoc);
 		PreparedStatement prep10 = conn.prepareStatement(sqlDelDoc);
 		PreparedStatement prep11 = conn.prepareStatement(sqlHtrPages);
+		PreparedStatement prep12 = conn.prepareStatement(sqlImages);
+		PreparedStatement prep13 = conn.prepareStatement(sqlJobs);
 		
 		prep1.setDate(1, sqlTimeAgo(timePeriod));
 		prep1.setDate(2, sqlTimeNow());
@@ -277,6 +291,12 @@ public class ReportFromDatabase implements ReportDatabaseInterface {
 		prep11.setDate(1, sqlTimeAgo(timePeriod));
 		prep11.setDate(2, sqlTimeNow());
 		
+		prep12.setDate(1, sqlTimeAgo(timePeriod));
+		prep12.setDate(2, sqlTimeNow());
+		
+		prep13.setDate(1, sqlTimeAgo(timePeriod));
+		prep13.setDate(2, sqlTimeNow());
+		
 		ResultSet rs1 = prep1.executeQuery();
 		ResultSet rs2 = prep2.executeQuery();
 		ResultSet rs3 = prep3.executeQuery();
@@ -288,8 +308,10 @@ public class ReportFromDatabase implements ReportDatabaseInterface {
 		ResultSet rs9 = prep9.executeQuery();
 		ResultSet rs10 = prep10.executeQuery();
 		ResultSet rs11 = prep11.executeQuery();
+		ResultSet rs12 = prep12.executeQuery();
+		ResultSet rs13 = prep13.executeQuery();
 		
-		while (rs1.next() && rs4.next() && rs5.next() && rs6.next() && rs7.next() && rs8.next() && rs9.next() && rs10.next() && rs11.next()) {
+		while (rs1.next() && rs4.next() && rs5.next() && rs6.next() && rs7.next() && rs8.next() && rs9.next() && rs10.next() && rs11.next() && rs12.next() && rs13.next()) {
 			countActiveUsers = rs1.getInt("count(distinctuser_id)");
 			countLayoutAnalysis = rs4.getInt("count(*)");
 			countHTR = rs5.getInt("count(*)");
@@ -298,6 +320,8 @@ public class ReportFromDatabase implements ReportDatabaseInterface {
 			countDuplDocs = rs8.getInt("count(*)");
 			countExpDocs = rs9.getInt("count(*)");
 			countDelDocs = rs10.getInt("count(*)");
+			imagesUploaded = rs12.getInt("count(*)");
+			countJobs = rs13.getInt("count(*)");
 			if(rs11.getString("pages") != null){
 				try {
 					pageIndices = CoreUtils.parseRangeListStr(rs11.getString("pages"),rs11.getInt("docid"));
@@ -316,445 +340,131 @@ public class ReportFromDatabase implements ReportDatabaseInterface {
 		
 		
 	}
-
-	public static void failedJobsChart(Connection conn, int timePeriod) throws SQLException {
-
-		DefaultCategoryDataset dataset = new DefaultCategoryDataset();
-		DefaultPieDataset piedataset = new DefaultPieDataset();
-
-		String sqlFailed = "select count(*) from jobs where STATE like 'FAILED' AND DESCRIPTION not like 'Could not create workdir%' AND DESCRIPTION not like '%Auf dem Gerät ist kein Speicherplatz mehr verfügbar%'  AND STARTED between ? and ?";
-		String sqlDone = "select count(*) from jobs where STATE not like 'FAILED' AND DESCRIPTION not like 'Could not create workdir%' AND DESCRIPTION not like '%Auf dem Gerät ist kein Speicherplatz mehr verfügbar%'   AND STARTED between ? and ?";
-
-		PreparedStatement prep = conn.prepareStatement(sqlFailed);
-		PreparedStatement prep2 = conn.prepareStatement(sqlDone);
-
-		prep.setDate(1, sqlTimeAgo(timePeriod));
-		prep.setDate(2, sqlTimeNow());
-		prep2.setDate(1, sqlTimeAgo(timePeriod));
-		prep2.setDate(2, sqlTimeNow());
-
-		ResultSet rs = prep.executeQuery();
-		ResultSet rs2 = prep2.executeQuery();
-
-		while (rs.next() && rs2.next()) {
-			int countFailed = rs.getInt("count(*)");
-			int countDone = rs2.getInt("count(*)");
-			countJobs = countFailed + countDone;
-			dataset.addValue(countFailed, "Jobs failed", " ");
-			dataset.addValue(countDone, "Jobs done", " ");
-			piedataset.setValue("Jobs done", countDone);
-			piedataset.setValue("Jobs failed", countFailed);
-
-		}
-
-		JFreeChart pieChart = ChartFactory.createPieChart("Pie Chart failed jobs", piedataset, true, true, false);
-
-		JFreeChart barChart = ChartFactory.createBarChart(
-				"All jobs failed/done between " + sqlTimeAgo(timePeriod) + " and " + sqlTimeNow(), " ",
-				"Number of jobs", dataset, PlotOrientation.VERTICAL, true, true, false);
-
-		int width = 640;
-		int height = 480;
-		float quality = 1;
-
-		File BarChart = new File("images/FailedJobs.jpg");
-		File PieChart = new File("images/FailedJobsPie.jpg");
-		try {
-			ChartUtilities.saveChartAsJPEG(BarChart, quality, barChart, width, height);
-			ChartUtilities.saveChartAsJPEG(PieChart, quality, pieChart, width, height);
-		} catch (IOException e) {
-			logger.error(e.getMessage(), e);
-		}
-
-	}
-
-	public static void allActionsChart(Connection conn, int timePeriod) throws SQLException {
-
-		DefaultCategoryDataset dataset = new DefaultCategoryDataset();
-
-		String sqlSave = "select count(*) from actions where type_id = 1 and time between ? and ?";
-		String sqlLogin = "select count(*) from actions where type_id = 2 and time between ? and ?";
-		String sqlStatus = "select count(*) from actions where type_id = 3 and time between ? and ?";
-		String sqlAcessDoc = "select count(*) from actions where type_id = 4 and time between ? and ?";
-
-		PreparedStatement prep1 = conn.prepareStatement(sqlSave);
-		PreparedStatement prep2 = conn.prepareStatement(sqlLogin);
-		PreparedStatement prep3 = conn.prepareStatement(sqlStatus);
-		PreparedStatement prep4 = conn.prepareStatement(sqlAcessDoc);
-
-		prep1.setDate(1, sqlTimeAgo(timePeriod));
-		prep1.setDate(2, sqlTimeNow());
-		prep2.setDate(1, sqlTimeAgo(timePeriod));
-		prep2.setDate(2, sqlTimeNow());
-		prep3.setDate(1, sqlTimeAgo(timePeriod));
-		prep3.setDate(2, sqlTimeNow());
-		prep4.setDate(1, sqlTimeAgo(timePeriod));
-		prep4.setDate(2, sqlTimeNow());
-
-		ResultSet rs1 = prep1.executeQuery();
-		ResultSet rs2 = prep2.executeQuery();
-		ResultSet rs3 = prep3.executeQuery();
-		ResultSet rs4 = prep4.executeQuery();
-
-		while (rs1.next() && rs2.next() && rs3.next() && rs4.next()) {
-
-			int countSave = rs1.getInt("count(*)");
-			int countLogin = rs2.getInt("count(*)");
-			int countStatus = rs3.getInt("count(*)");
-			int countAcess = rs4.getInt("count(*)");
-			dataset.addValue(countSave, "Save Action", " ");
-			dataset.addValue(countLogin, "Login Action", " ");
-			dataset.addValue(countStatus, "Status Action", " ");
-			dataset.addValue(countAcess, "Access Action", " ");
-
-		}
-
-		JFreeChart barChart = ChartFactory.createBarChart(
-				"All actions between " + sqlTimeAgo(timePeriod) + " and " + sqlTimeNow(), " ", "Number of actions",
-				dataset, PlotOrientation.VERTICAL, true, true, false);
-
-		int width = 640;
-		int height = 480;
-		float quality = 1;
-
-		File BarChart = new File("images/AllActions.jpg");
-		try {
-			ChartUtilities.saveChartAsJPEG(BarChart, quality, barChart, width, height);
-		} catch (IOException e) {
-			logger.error(e.getMessage(), e);
-		}
-
-	}
-
-	public static void numberWordsTrainedChart(Connection conn, int timePeriod) throws SQLException {
-
-		DefaultCategoryDataset dataset = new DefaultCategoryDataset();
-
-		String sql = "select sum(nr_of_words) from HTR where created between ? and ?";
-		String sql2 = "select sum(nr_of_lines) from HTR where created between ? and ?";
-
-		PreparedStatement prep = conn.prepareStatement(sql);
-		PreparedStatement prep2 = conn.prepareStatement(sql2);
-
-		prep.setDate(1, sqlTimeAgo(timePeriod));
-		prep.setDate(2, sqlTimeNow());
-		prep2.setDate(1, sqlTimeAgo(timePeriod));
-		prep2.setDate(2, sqlTimeNow());
-
-		ResultSet rs = prep.executeQuery();
-		ResultSet rs2 = prep2.executeQuery();
-
-		while (rs.next() && rs2.next()) {
-
-			int countTrainedWords = rs.getInt("sum(nr_of_words)");
-			int countTrainedLines = rs2.getInt("sum(nr_of_lines)");
-			dataset.addValue(countTrainedWords, "Words trained", " ");
-			dataset.addValue(countTrainedLines, "Lines trained", " ");
-
-		}
-		JFreeChart barChart = ChartFactory.createBarChart(
-				"All words trained between " + sqlTimeAgo(timePeriod) + " and " + sqlTimeNow(), " ",
-				"Number of words trained", dataset, PlotOrientation.VERTICAL, true, true, false);
-
-		int width = 640;
-		int height = 480;
-		float quality = 1;
-
-		File BarChart = new File("images/WordsTrained.jpg");
-		try {
-			ChartUtilities.saveChartAsJPEG(BarChart, quality, barChart, width, height);
-		} catch (IOException e) {
-			logger.error(e.getMessage(), e);
-		}
-
-	}
-
-	public static void averageUsers(Connection conn, int timePeriod) throws SQLException {
-
-		DefaultCategoryDataset dataset = new DefaultCategoryDataset();
-
-		String sqlTranskribusX = "select count(*) from actions a join session_history sh on a.session_history_id = sh.session_history_id where a.type_id = 2 AND sh.useragent like 'Jersey%' AND time between ? and ?";
-		String sqlallLogins = "select count(*) from actions a join session_history sh on a.session_history_id = sh.session_history_id where a.type_id = 2  AND time between ? and ?";
-
-		PreparedStatement prep = conn.prepareStatement(sqlTranskribusX);
-		PreparedStatement prep2 = conn.prepareStatement(sqlallLogins);
-
-		prep.setDate(1, sqlTimeAgo(timePeriod));
-		prep.setDate(2, sqlTimeNow());
-
-		prep2.setDate(1, sqlTimeAgo(timePeriod));
-		prep2.setDate(2, sqlTimeNow());
-
-		ResultSet rs = prep.executeQuery();
-		ResultSet rs2 = prep2.executeQuery();
-
-		while (rs.next() && rs2.next()) {
-			int transLogins = rs.getInt("count(*)");
-			int allLogins = rs2.getInt("count(*)");
-			dataset.addValue(transLogins / 30, "TransktibusX Average", " ");
-			dataset.addValue(allLogins / 30, "All Logins Average", " ");
-
-		}
-		JFreeChart barChart = ChartFactory.createBarChart(
-				"Average unique user logins per day between " + sqlTimeAgo(timePeriod) + " and " + sqlTimeNow(), " ",
-				"Average logins", dataset, PlotOrientation.VERTICAL, true, true, false);
-
-		int width = 640;
-		int height = 480;
-		float quality = 1;
-
-		File BarChart = new File("images/AverageUsers.jpg");
-		try {
-			ChartUtilities.saveChartAsJPEG(BarChart, quality, barChart, width, height);
-		} catch (IOException e) {
-			logger.error(e.getMessage(), e);
-		}
-
-	}
-
-	public static void nrLoginsActionsExcel(Connection conn, int timePeriod) throws SQLException {
-
-		FimgStoreUriBuilder uriBuilder = FimgStoreReadConnection.getUriBuilder();
-
-		String sql = "select * from actions a join session_history sh on a.session_history_id = sh.session_history_id where a.type_id = 2 AND a.client_Id is null  AND time between ? and ? order by time desc";
-		String sql2 = "select * from images join pages on IMAGES.IMAGE_ID = PAGES.IMAGE_ID join doc_md on PAGES.DOCID = DOC_MD.DOCID where tags_stored between ? and ? ";
-		String sql3 = "select * from jobs where started between ? and ? order by started desc";
-
-		HSSFWorkbook workbook = new HSSFWorkbook();
-		HSSFSheet sheet = workbook.createSheet("Actions of Users");
-		HSSFSheet sheet2 = workbook.createSheet("Images Uploaded");
-		HSSFSheet sheet3 = workbook.createSheet("Jobs created");
-
-		Map<String, Object[]> excelData = new HashMap<String, Object[]>();
-		Map<String, Object[]> excelData2 = new HashMap<String, Object[]>();
-		Map<String, Object[]> excelData3 = new HashMap<String, Object[]>();
+	
+	public static void getJobTime(Connection conn, int timePeriod, String moduleName) throws SQLException {
 		
-		int rowCount1 = 0;
-		int rowCount2 = 0;
-		int rowCount3 = 0;
-
-		PreparedStatement prep = conn.prepareStatement(sql);
-		PreparedStatement prep2 = conn.prepareStatement(sql2);
-		PreparedStatement prep3 = conn.prepareStatement(sql3);
-
+		String SQL =	"select userid,sum(endtime - starttime)\n" + 
+						"from jobs\n" + 
+						"where job_impl like ? and STATE like 'FINISHED' and started between ? and ?\n" + 
+						"group by  userid,job_impl\n" + 
+						"order by sum(endtime - starttime) DESC\n" + 
+						"FETCH FIRST 10 ROWS ONLY";
+		PreparedStatement prep = conn.prepareStatement(SQL);
+		prep.setString(1, moduleName);
+		prep.setDate(2, sqlTimeAgo(timePeriod));
+		prep.setDate(3, sqlTimeNow());
+		ResultSet rs = prep.executeQuery();
+		
+		for(int i = 0; i <= 5; i++) {
+			rs.next();
+			switch(moduleName) {
+			case HTR_MODULE:
+				htrRunTime[i] = "User: "+rs.getString("userid")+" HTR Runtime: "+hourFormat( rs.getInt("sum(endtime-starttime)"));
+				break;
+			case OCR_MODULE:
+				ocrRunTime[i] = "User: "+rs.getString("userid")+" OCR Runtime: "+hourFormat( rs.getInt("sum(endtime-starttime)"));
+				break;
+			case LA_MODULE:
+				laRunTime[i] = "User: "+rs.getString("userid")+" LA Runtime: "+hourFormat( rs.getInt("sum(endtime-starttime)"));
+			}
+		
+		}
+	}
+	
+public static void getTotalJobTime(Connection conn, int timePeriod, String moduleName) throws SQLException {
+		
+		String SQL =	"select sum(endtime - starttime)\n" + 
+						"from jobs\n" + 
+						"where job_impl like ? and STATE like 'FINISHED' and started between ? and ?";
+		PreparedStatement prep = conn.prepareStatement(SQL);
+		prep.setString(1, moduleName);
+		prep.setDate(2, sqlTimeAgo(timePeriod));
+		prep.setDate(3, sqlTimeNow());
+		ResultSet rs = prep.executeQuery();
+	
+		while(rs.next()) {
+			switch(moduleName) {
+			case HTR_MODULE:
+				totalHtrTime = hourFormat(rs.getLong("sum(endtime-starttime)"));
+				break;
+			case OCR_MODULE:
+				totalOcrTime = hourFormat(rs.getLong("sum(endtime-starttime)"));
+				break;
+			case LA_MODULE:
+				totalLaTime= hourFormat(rs.getLong("sum(endtime-starttime)"));
+			}
+		
+		}
+	}
+	
+	
+	public static void getTrainingTime(Connection conn, int timePeriod) throws SQLException {
+		
+		String SQL = 	"select userid ,sum(endtime - starttime)\n" + 
+						"from jobs j \n" + 
+						"join JOB_IMPL_REGISTRY jir\n" + 
+						" on j.JOB_IMPL = jir.JOB_IMPL\n" + 
+						"where j.state like 'FINISHED' and started between ? and ? and  (j.JOB_IMPL like 'CITlabHtrTrainingJob' or j.JOB_IMPL like 'CITlabHtrPlusTrainingJob')\n" + 
+						"group by  userid\n" + 
+						"order by sum(endtime - starttime) DESC\n" + 
+						"FETCH FIRST 10 ROWS ONLY";
+		PreparedStatement prep = conn.prepareStatement(SQL);
 		prep.setDate(1, sqlTimeAgo(timePeriod));
 		prep.setDate(2, sqlTimeNow());
-		prep2.setDate(1, sqlTimeAgo(timePeriod));
-		prep2.setDate(2, sqlTimeNow());
-		prep3.setDate(1, sqlTimeAgo(timePeriod));
-		prep3.setDate(2, sqlTimeNow());
-
 		ResultSet rs = prep.executeQuery();
-		ResultSet rs2 = prep2.executeQuery();
-		ResultSet rs3 = prep3.executeQuery();
-
-		while (rs.next()) {
-
-			rowCount1 = rowCount1 + 1;
-			int actionId = rs.getInt("action_id");
-			String userLogin = rs.getString("user_name");
-			String userAgent = rs.getString("useragent");
-			String ip = rs.getString("ip");
-			String created = rs.getString("created");
-			String destroyed = rs.getString("destroyed");
-			String guiVersion = rs.getString("gui_version");
-
-			excelData.put(Integer.toString(rowCount1),
-					new Object[] { actionId, userLogin, userAgent, ip, created, destroyed, guiVersion });
+		for(int i = 0; i <= 5; i++) {
+			rs.next();
+			trainingTime[i] = "User: "+rs.getString("userid")+" Training Runtime: "+hourFormat( rs.getLong("sum(endtime-starttime)"));
 			
-
-		}
-		while(rs2.next()) {
-			
-			rowCount2 = rowCount2 + 1;
-			
-			int imageId = rs2.getInt("docid");
-			String imageKey = rs2.getString("imagekey");
-			String uri = uriBuilder.getImgUri(imageKey, ImgType.view).toString();
-			String imageFile = rs2.getString("imgfilename");
-			String uploader = rs2.getString("uploader");
-			String title = rs2.getString("title");
-			String author = rs2.getString("author");
-			String created2 = rs2.getString("tags_stored");
-			
-			excelData2.put(Integer.toString(rowCount2),
-					new Object[] { imageId, uri, imageFile, uploader, title, author, created2 });
-			
-			
-		}
-		while(rs3.next()) {
-			
-			rowCount3 = rowCount3 + 1;
-			
-			int jobid = rs3.getInt("jobid");
-			String userid = rs3.getString("userid");
-			String type = rs3.getString("type");
-			String description = rs3.getString("description");
-			String pages = rs3.getString("pages");
-			String module = rs3.getString("module_name");
-			String started = rs3.getString("started");
-			String ended = rs3.getString("ended");
-			
-			excelData3.put(Integer.toString(rowCount3),
-					new Object[] { jobid, userid, type, description, pages, module, started, ended });
 		}
 		
-		// load Data into worksheet
-
-		Set<String> keyset = excelData.keySet();
-		int rownum = 0;
-		for (String key : keyset) {
-			Row row = sheet.createRow(rownum++);
-			Object[] objArr = excelData.get(key);
-			int cellnum = 0;
-			for (Object obj : objArr) {
-				Cell cell = row.createCell(cellnum++);
-				if (obj instanceof Integer) {
-					cell.setCellValue((Integer) obj);
-				} else {
-					cell.setCellValue((String) obj);
-				}
-			}
-		}
-
-		Set<String> keyset2 = excelData2.keySet();
-		int rownum2 = 0;
-		try {
-			for (String key : keyset2) {
-				Row row2 = sheet2.createRow(rownum2++);
-				Object[] objArr = excelData2.get(key);
-				int cellnum = 0;
-				for (Object obj : objArr) {
-					Cell cell = row2.createCell(cellnum++);
-					if (obj instanceof Integer) {
-						cell.setCellValue((Integer) obj);
-					} else {
-						cell.setCellValue((String) obj);
-					}
-				}
-			}
-		}catch(IllegalArgumentException e) {
-			logger.error("Excel generation failed due to too many rows", e);
-		}
-
-		Set<String> keyset3 = excelData3.keySet();
-		int rownum3 = 0;
-		for (String key : keyset3) {
-			Row row3 = sheet3.createRow(rownum3++);
-			Object[] objArr = excelData3.get(key);
-			int cellnum = 0;
-			for (Object obj : objArr) {
-				Cell cell = row3.createCell(cellnum++);
-				if (obj instanceof Integer) {
-					cell.setCellValue((Integer) obj);
-				} else {
-					cell.setCellValue((String) obj);
-				}
-			}
-		}
-
-		try {
-			FileOutputStream file = new FileOutputStream(new File("report/Report_" + sqlTimeNow() + ".xls"));
-			workbook.write(file);
-			file.close();
-			workbook.close();
-		} catch (IOException e) {
-			logger.error(e.getMessage(), e);
-		}
-
 	}
-
-	public static void countsCombinedTable(Connection conn, int timePeriod) throws SQLException {
-
-		DefaultTableModel model = new DefaultTableModel(new String[] { "Images uploaded", "Jobs created ",
-				"HTR Models created", "Login TranskribusX", "Saved Documents" }, 0);
-
-		String sqlImages = "select count(*) from images join pages on IMAGES.IMAGE_ID = PAGES.IMAGE_ID join doc_md on PAGES.DOCID = DOC_MD.DOCID where images.created between ? and ?";
-		String sqlJobs = "select count(*) from jobs where started between ? and ? order by started desc";
-		String sqlHTR = "select count(*) from HTR where created between ? and ?";
-		String sqlLogin = "select count(*) from actions a join session_history sh on a.session_history_id = sh.session_history_id where a.type_id = 2 AND sh.useragent like 'Jersey%' AND time between ? and ?";
-		String sqlSaved = "select count(*) from actions where type_id = 1 and time between ? and ?";
-
-		PreparedStatement prep = conn.prepareStatement(sqlImages);
-		PreparedStatement prep2 = conn.prepareStatement(sqlJobs);
-		PreparedStatement prep3 = conn.prepareStatement(sqlHTR);
-		PreparedStatement prep4 = conn.prepareStatement(sqlLogin);
-		PreparedStatement prep5 = conn.prepareStatement(sqlSaved);
-
+	
+public static void getTrainingTotalTime(Connection conn, int timePeriod) throws SQLException {
+		
+		String SQL = 	"select sum(endtime - starttime)\n" + 
+						"from jobs j \n" + 
+						"where j.state like 'FINISHED' and started between ? and ? and  (j.JOB_IMPL like 'CITlabHtrTrainingJob' or j.JOB_IMPL like 'CITlabHtrPlusTrainingJob')";
+		PreparedStatement prep = conn.prepareStatement(SQL);
 		prep.setDate(1, sqlTimeAgo(timePeriod));
 		prep.setDate(2, sqlTimeNow());
-
-		prep2.setDate(1, sqlTimeAgo(timePeriod));
-		prep2.setDate(2, sqlTimeNow());
-
-		prep3.setDate(1, sqlTimeAgo(timePeriod));
-		prep3.setDate(2, sqlTimeNow());
-
-		prep4.setDate(1, sqlTimeAgo(timePeriod));
-		prep4.setDate(2, sqlTimeNow());
-
-		prep5.setDate(1, sqlTimeAgo(timePeriod));
-		prep5.setDate(2, sqlTimeNow());
-
 		ResultSet rs = prep.executeQuery();
-		ResultSet rs2 = prep2.executeQuery();
-		ResultSet rs3 = prep3.executeQuery();
-		ResultSet rs4 = prep4.executeQuery();
-		ResultSet rs5 = prep5.executeQuery();
-
-		while (rs.next() && rs2.next() && rs3.next() && rs4.next() && rs5.next()) {
-			imagesUploaded = rs.getInt("count(*)");
-			countJobs = rs2.getInt("count(*)");
-			int countHTR = rs3.getInt("count(*)");
-			int countLogin = rs4.getInt("count(*)");
-			int countSaved = rs5.getInt("count(*)");
-
-			model.addRow(new Object[] { imagesUploaded, countJobs, countHTR, countLogin, countSaved });
-
+		while(rs.next()) {
+			totalTrainingTime = hourFormat(rs.getLong("sum(endtime-starttime)"));
 		}
-
-		JTable table = new JTable();
-		table.setModel(model);
-		JTableHeader header = table.getTableHeader();
-		table.setSize(table.getPreferredSize());
-		header.setSize(header.getPreferredSize());
-
-		BufferedImage img = createImage(table);
-
-		File outputfile = new File("images/CountsCombinedTable.jpg");
-		try {
-			ImageIO.write(img, "jpg", outputfile);
-		} catch (IOException e) {
-
-			logger.error(e.getMessage(), e);
-		}
-
+		
+		
 	}
+
+	
 
 	public static void generateReport(int timePeriod) {
 
-		Statement stmt = null;
 
 		DbConnection.setConfig(DbConfig.Prod);
 		try (Connection conn = DbConnection.getConnection()) {
 
-			stmt = conn.createStatement();
-
-			failedJobsChart(conn, timePeriod);
-
-			numberWordsTrainedChart(conn, timePeriod);
-
-			averageUsers(conn, timePeriod);
-
-			countsCombinedTable(conn, timePeriod);
-
-			allActionsChart(conn, timePeriod);
-
-			nrLoginsActionsExcel(conn, timePeriod);
+			
+			getJobTime(conn, timePeriod, HTR_MODULE );
+			
+			getJobTime(conn, timePeriod, OCR_MODULE);
+			
+			getJobTime(conn, timePeriod, LA_MODULE);
+			
+			getTotalJobTime(conn, timePeriod, HTR_MODULE);
+			
+			getTotalJobTime(conn, timePeriod, OCR_MODULE);
+			
+			getTotalJobTime(conn, timePeriod, LA_MODULE);
+			
+			getTrainingTotalTime(conn,timePeriod);
+			
+			getTrainingTime(conn, timePeriod);
 			
 			emailMessage(conn,timePeriod);
+			
+			sendReportMail(null, timePeriod);
 
-			covertJpgToPdf(timePeriod);
 
 		}
 
@@ -763,6 +473,15 @@ public class ReportFromDatabase implements ReportDatabaseInterface {
 
 		}
 
+	}
+	
+	private static String hourFormat(long l) {
+		return String.format("%02d:%02d:%02d", 
+			    TimeUnit.MILLISECONDS.toHours(l),
+			    TimeUnit.MILLISECONDS.toMinutes(l) - 
+			    TimeUnit.HOURS.toMinutes(TimeUnit.MILLISECONDS.toHours(l)),
+			    TimeUnit.MILLISECONDS.toSeconds(l) - 
+			    TimeUnit.MINUTES.toSeconds(TimeUnit.MILLISECONDS.toMinutes(l)));
 	}
 
 	public static void main(String[] args) {
