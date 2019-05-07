@@ -93,13 +93,15 @@ public class ReportFromDatabase implements ReportDatabaseInterface {
 	static Set <Integer> pageIndices = new HashSet<Integer>();
 
 	public static java.sql.Date sqlTimeNow() {
-		LocalDateTime now = LocalDateTime.now();
+		LocalDateTime now = LocalDateTime.now().withHour(0).withMinute(0).withSecond(0);
+		logger.debug(now.toString());
 		java.sql.Date sqlNow = java.sql.Date.valueOf(now.toLocalDate());
 		return sqlNow;
 	}
 
 	public static java.sql.Date sqlTimeAgo(int timePeriodDays) {
-		LocalDateTime timeAgo = LocalDateTime.now().minusDays(timePeriodDays);
+		LocalDateTime timeAgo = LocalDateTime.now().withHour(0).withMinute(0).withSecond(0).minusDays(timePeriodDays);
+		logger.debug(timeAgo.toString());
 		java.sql.Date sqlAgo = java.sql.Date.valueOf(timeAgo.toLocalDate());
 		return sqlAgo;
 	}
@@ -436,8 +438,6 @@ public static void getTrainingTotalTime(Connection conn, int timePeriod) throws 
 		
 	}
 
-	
-
 	public static void generateReport(int timePeriod) {
 
 
@@ -483,6 +483,8 @@ public static void getTrainingTotalTime(Connection conn, int timePeriod) throws 
 			    TimeUnit.MILLISECONDS.toSeconds(l) - 
 			    TimeUnit.MINUTES.toSeconds(TimeUnit.MILLISECONDS.toMinutes(l)));
 	}
+	
+	
 
 	public static void main(String[] args) {
 		Runtime.getRuntime().addShutdownHook(new Thread() {
