@@ -1,9 +1,6 @@
 package eu.transkribus.report;
 
-import java.awt.Graphics2D;
-import java.awt.image.BufferedImage;
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -17,17 +14,9 @@ import java.util.concurrent.TimeUnit;
 
 import javax.mail.MessagingException;
 import javax.persistence.EntityNotFoundException;
-import javax.swing.JTable;
-import javax.swing.table.JTableHeader;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.itextpdf.text.Chunk;
-import com.itextpdf.text.Document;
-import com.itextpdf.text.Image;
-import com.itextpdf.text.Paragraph;
-import com.itextpdf.text.pdf.PdfWriter;
 
 import eu.transkribus.core.model.beans.auth.TrpUser;
 import eu.transkribus.core.util.CoreUtils;
@@ -51,6 +40,7 @@ public class ReportFromDatabase implements ReportDatabaseInterface {
 	
 	static int imagesUploaded = 0;
 	static int countJobs = 0;
+	static int htrModelsCreated = 0;
 	static int countNewUsers = 0;
 	static int countUsers = 0;
 	static String [] mostActiveUsers = new String[6];
@@ -73,17 +63,18 @@ public class ReportFromDatabase implements ReportDatabaseInterface {
 	static int countKWS = 0;
 	static int countTags = 0;
 	static Set <Integer> pageIndices = new HashSet<Integer>();
+	static String format = "%1$-50s | %2$-30s | %3$-30s";
+	static String format2 = "%1$-50s | %2$-30s";
+	
 
 	public static java.sql.Date sqlTimeNow() {
 		LocalDateTime now = LocalDateTime.now().withHour(0).withMinute(0).withSecond(0);
-		logger.debug(now.toString());
 		java.sql.Date sqlNow = java.sql.Date.valueOf(now.toLocalDate());
 		return sqlNow;
 	}
 
 	public static java.sql.Date sqlTimeAgo(int timePeriodDays) {
 		LocalDateTime timeAgo = LocalDateTime.now().withHour(0).withMinute(0).withSecond(0).minusDays(timePeriodDays);
-		logger.debug(timeAgo.toString());
 		java.sql.Date sqlAgo = java.sql.Date.valueOf(timeAgo.toLocalDate());
 		return sqlAgo;
 	}
@@ -111,11 +102,12 @@ public class ReportFromDatabase implements ReportDatabaseInterface {
 				+"Active Users / Unique Logins : "+countActiveUsers+" \n"
 				+"\nMost Active Users Image Uploads : \n\n"+mostActiveUsers[0]+" \n"+mostActiveUsers[1]+"\n"+mostActiveUsers[2]+"\n"+mostActiveUsers[3]+"\n"+mostActiveUsers[4]+"\n"
 				+"\nMost Active Users Save Actions : \n\n"+mostActiveUsersSave[0]+" \n"+mostActiveUsersSave[1]+"\n"+mostActiveUsersSave[2]+"\n"+mostActiveUsersSave[3]+"\n"+mostActiveUsersSave[4]+"\n"
-				+"\nMost Training Runtime : \nTOTAL : "+totalTrainingTime+ " \n"+trainingTime[0]+" \n"+trainingTime[1]+"\n"+trainingTime[2]+"\n"+trainingTime[3]+"\n"+trainingTime[4]+"\n"
-				+"\nMost HTR Runtime : \nTOTAL : "+totalHtrTime+ " \n"+htrRunTime[0]+" \n"+htrRunTime[1]+"\n"+htrRunTime[2]+"\n"+htrRunTime[3]+"\n"+htrRunTime[4]+"\n"
-				+"\nMost OCR Runtime : \nTOTAL : "+totalOcrTime+ " \n"+ocrRunTime[0]+" \n"+ocrRunTime[1]+"\n"+ocrRunTime[2]+"\n"+ocrRunTime[3]+"\n"+ocrRunTime[4]+"\n"
-				+"\nMost LA Runtime : \nTOTAL : "+totalLaTime+ " \n"+laRunTime[0]+" \n"+laRunTime[1]+"\n"+laRunTime[2]+"\n"+laRunTime[3]+"\n"+laRunTime[4]+"\n"
+				+"\nMost Training Runtime : \n"+totalTrainingTime+ " \n"+trainingTime[0]+" \n"+trainingTime[1]+"\n"+trainingTime[2]+"\n"+trainingTime[3]+"\n"+trainingTime[4]+"\n"
+				+"\nMost HTR Runtime : \n"+totalHtrTime+ "\n"+htrRunTime[0]+"\n"+htrRunTime[1]+"\n"+htrRunTime[2]+"\n"+htrRunTime[3]+"\n"+htrRunTime[4]+"\n"
+				+"\nMost OCR Runtime : \n"+totalOcrTime+ " \n"+ocrRunTime[0]+" \n"+ocrRunTime[1]+"\n"+ocrRunTime[2]+"\n"+ocrRunTime[3]+"\n"+ocrRunTime[4]+"\n"
+				+"\nMost LA Runtime : \n"+totalLaTime+ " \n"+laRunTime[0]+" \n"+laRunTime[1]+"\n"+laRunTime[2]+"\n"+laRunTime[3]+"\n"+laRunTime[4]+"\n"
 				+"\nJobs processed in total: "+countJobs+" \n"
+				+"\nHTR Models created in total: "+htrModelsCreated+" \n"
 				+"\nCount Created Documents: "+countCreatedDocs+ " \n"
 				+"Count Duplicated Documents: "+countDuplDocs+ " \n"
 				+"Count Export Documents: "+countExpDocs+ " \n"
@@ -128,78 +120,13 @@ public class ReportFromDatabase implements ReportDatabaseInterface {
 			try {
 
 				MailUtils.TRANSKRIBUS_UIBK_MAIL_SERVER
-						.sendMail(mailTo, reportTime+ " report from " + sqlTimeAgo(timePeriod)+ " to " + sqlTimeNow(),
+						.sendMail(mailTo, reportTime+ " report from " + sqlTimeNow(),
 								messageText,
 								files, "", false, false);
 			} catch (MessagingException e) {
 				logger.error("Could not send mail to " + mailTo, e);
 			}
 		}
-
-	}
-
-	public static void covertJpgToPdf(int timePeriod) {
-
-		try {
-			Document document = new Document();
-			File pdfFile = new File("report/report" + sqlTimeNow() + ".pdf");
-			PdfWriter.getInstance(document, new FileOutputStream(pdfFile));
-
-			document.open();
-
-			Image failedJobs = Image.getInstance("images/FailedJobs.jpg");
-			failedJobs.scalePercent(70);
-
-			Image failedJobsPie = Image.getInstance("images/FailedJobsPie.jpg");
-			failedJobsPie.scalePercent(70);
-			
-			Image wordsTrained = Image.getInstance("images/WordsTrained.jpg");
-			wordsTrained.scalePercent(70);
-
-			Image averageUsers = Image.getInstance("images/AverageUsers.jpg");
-			averageUsers.scalePercent(70);
-
-			Image countsCombinedTable = Image.getInstance("images/CountsCombinedTable.jpg");
-			
-			Image allActions = Image.getInstance("images/AllActions.jpg");
-			allActions.scalePercent(70);
-
-			document.add(new Chunk("Database report from " + sqlTimeAgo(timePeriod) + " to " + sqlTimeNow() + ""));
-			document.add(Chunk.NEWLINE);
-			document.add(averageUsers);
-			document.add(wordsTrained);
-			document.newPage();
-			document.add(failedJobs);
-			document.add(failedJobsPie);
-			document.add(allActions);
-			document.add(new Paragraph(
-					"Combined counts of images uploaded,jobs created, HTR models, logins transkribusX and saved Documents"));
-			document.add(Chunk.NEWLINE);
-			document.add(countsCombinedTable);
-
-			document.close();
-
-			File xlsFile = new File("report/Report_" + sqlTimeNow().toString() + ".xls");
-
-			sendReportMail(new File[] { pdfFile, xlsFile }, timePeriod);
-			
-		} catch (Exception e) {
-			logger.error(e.getMessage(), e);
-		}
-
-	}
-
-	public static BufferedImage createImage(JTable table) {
-
-		JTableHeader tableHeaderComp = table.getTableHeader();
-		int totalWidth = tableHeaderComp.getWidth() + table.getWidth();
-		int totalHeight = tableHeaderComp.getHeight() + table.getHeight();
-		BufferedImage tableImage = new BufferedImage(totalWidth, totalHeight, BufferedImage.TYPE_INT_RGB);
-		Graphics2D g2D = (Graphics2D) tableImage.getGraphics();
-		tableHeaderComp.paint(g2D);
-		g2D.translate(0, tableHeaderComp.getHeight());
-		table.paint(g2D);
-		return tableImage;
 
 	}
 	
@@ -318,8 +245,8 @@ public class ReportFromDatabase implements ReportDatabaseInterface {
 		for(int i = 0; i <= 5; i++) {
 			rs2.next();
 			rs3.next();
-			mostActiveUsers[i] = "User: "+rs2.getString("uploader")+" Uploaded Images: "+rs2.getInt("count(distinctimages.image_id)");
-			mostActiveUsersSave[i] = "User: "+rs3.getString("user_name")+" Save Actions: "+rs3.getInt("count(type_id)");
+			mostActiveUsers[i] = String.format(format2, rs2.getString("uploader"),rs2.getInt("count(distinctimages.image_id)"));
+			mostActiveUsersSave[i] = String.format(format2,rs3.getString("user_name"),rs3.getInt("count(type_id)"));
 		}
 		
 		
@@ -327,10 +254,10 @@ public class ReportFromDatabase implements ReportDatabaseInterface {
 	
 	public static void getJobTime(Connection conn, int timePeriod, String moduleName) throws SQLException {
 		
-		String SQL =	"select userid,sum(endtime - starttime)\n" + 
+		String SQL =	"select userid,sum(endtime - starttime),sum(total_work)\n" + 
 						"from jobs\n" + 
 						"where job_impl like ? and STATE like 'FINISHED' and started between ? and ?\n" + 
-						"group by  userid,job_impl\n" + 
+						"group by  userid\n" + 
 						"order by sum(endtime - starttime) DESC\n" + 
 						"FETCH FIRST 10 ROWS ONLY";
 		PreparedStatement prep = conn.prepareStatement(SQL);
@@ -343,13 +270,14 @@ public class ReportFromDatabase implements ReportDatabaseInterface {
 			rs.next();
 			switch(moduleName) {
 			case HTR_MODULE:
-				htrRunTime[i] = "User: "+rs.getString("userid")+" HTR Runtime: "+hourFormat( rs.getInt("sum(endtime-starttime)"));
+				htrRunTime[i] = String.format(format, rs.getString("userid"),"Time : "+hourFormat( rs.getInt("sum(endtime-starttime)")),"Pages : "+rs.getInt("sum(total_work)"));
 				break;
 			case OCR_MODULE:
-				ocrRunTime[i] = "User: "+rs.getString("userid")+" OCR Runtime: "+hourFormat( rs.getInt("sum(endtime-starttime)"));
+				
+				ocrRunTime[i] = String.format(format, rs.getString("userid"),"Time : "+hourFormat( rs.getInt("sum(endtime-starttime)")),"Pages : "+rs.getInt("sum(total_work)"));
 				break;
 			case LA_MODULE:
-				laRunTime[i] = "User: "+rs.getString("userid")+" LA Runtime: "+hourFormat( rs.getInt("sum(endtime-starttime)"));
+				laRunTime[i] = String.format(format, rs.getString("userid"),"Time : "+hourFormat( rs.getInt("sum(endtime-starttime)")),"Pages : "+rs.getInt("sum(total_work)"));
 			}
 		
 		}
@@ -357,7 +285,7 @@ public class ReportFromDatabase implements ReportDatabaseInterface {
 	
 public static void getTotalJobTime(Connection conn, int timePeriod, String moduleName) throws SQLException {
 		
-		String SQL =	"select sum(endtime - starttime)\n" + 
+		String SQL =	"select sum(endtime - starttime),sum(total_work)\n" + 
 						"from jobs\n" + 
 						"where job_impl like ? and STATE like 'FINISHED' and started between ? and ?";
 		PreparedStatement prep = conn.prepareStatement(SQL);
@@ -369,13 +297,13 @@ public static void getTotalJobTime(Connection conn, int timePeriod, String modul
 		while(rs.next()) {
 			switch(moduleName) {
 			case HTR_MODULE:
-				totalHtrTime = hourFormat(rs.getLong("sum(endtime-starttime)"));
+				totalHtrTime = String.format(format, "TOTAL","Time : "+ hourFormat(rs.getLong("sum(endtime-starttime)")),"Pages : "+rs.getInt("sum(total_work)"));
 				break;
 			case OCR_MODULE:
-				totalOcrTime = hourFormat(rs.getLong("sum(endtime-starttime)"));
+				totalOcrTime = String.format(format, "TOTAL", "Time : "+hourFormat(rs.getLong("sum(endtime-starttime)")),"Pages : "+rs.getInt("sum(total_work)"));
 				break;
 			case LA_MODULE:
-				totalLaTime= hourFormat(rs.getLong("sum(endtime-starttime)"));
+				totalLaTime= String.format(format, "TOTAL", "Time : "+hourFormat(rs.getLong("sum(endtime-starttime)")),"Pages : "+rs.getInt("sum(total_work)"));
 			}
 		
 		}
@@ -384,7 +312,7 @@ public static void getTotalJobTime(Connection conn, int timePeriod, String modul
 	
 	public static void getTrainingTime(Connection conn, int timePeriod) throws SQLException {
 		
-		String SQL = 	"select userid ,sum(endtime - starttime)\n" + 
+		String SQL = 	"select userid ,sum(endtime - starttime),sum(j.total_work)\n" + 
 						"from jobs j \n" + 
 						"join JOB_IMPL_REGISTRY jir\n" + 
 						" on j.JOB_IMPL = jir.JOB_IMPL\n" + 
@@ -398,7 +326,7 @@ public static void getTotalJobTime(Connection conn, int timePeriod, String modul
 		ResultSet rs = prep.executeQuery();
 		for(int i = 0; i <= 5; i++) {
 			rs.next();
-			trainingTime[i] = "User: "+rs.getString("userid")+" Training Runtime: "+hourFormat( rs.getLong("sum(endtime-starttime)"));
+			trainingTime[i] =  String.format(format, rs.getString("userid"),"Time : "+hourFormat( rs.getInt("sum(endtime-starttime)")),"Pages : "+rs.getInt("sum(j.total_work)"));
 			
 		}
 		
@@ -406,7 +334,7 @@ public static void getTotalJobTime(Connection conn, int timePeriod, String modul
 	
 public static void getTrainingTotalTime(Connection conn, int timePeriod) throws SQLException {
 		
-		String SQL = 	"select sum(endtime - starttime)\n" + 
+		String SQL = 	"select sum(endtime - starttime),sum(total_work)\n" + 
 						"from jobs j \n" + 
 						"where j.state like 'FINISHED' and started between ? and ? and  (j.JOB_IMPL like 'CITlabHtrTrainingJob' or j.JOB_IMPL like 'CITlabHtrPlusTrainingJob')";
 		PreparedStatement prep = conn.prepareStatement(SQL);
@@ -414,7 +342,7 @@ public static void getTrainingTotalTime(Connection conn, int timePeriod) throws 
 		prep.setDate(2, sqlTimeNow());
 		ResultSet rs = prep.executeQuery();
 		while(rs.next()) {
-			totalTrainingTime = hourFormat(rs.getLong("sum(endtime-starttime)"));
+			totalTrainingTime = String.format(format, "TOTAL", "Time : "+hourFormat(rs.getLong("sum(endtime-starttime)")),"Pages : "+rs.getInt("sum(total_work)"));
 		}
 		
 		
