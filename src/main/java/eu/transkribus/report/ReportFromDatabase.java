@@ -40,7 +40,6 @@ public class ReportFromDatabase implements ReportDatabaseInterface {
 	
 	static int imagesUploaded = 0;
 	static int countJobs = 0;
-	static int htrModelsCreated = 0;
 	static int countNewUsers = 0;
 	static int countUsers = 0;
 	static String [] mostActiveUsers = new String[6];
@@ -53,6 +52,7 @@ public class ReportFromDatabase implements ReportDatabaseInterface {
 	static String totalHtrTime;
 	static String totalOcrTime;
 	static String totalLaTime;
+	static String htrModelsCreated;
 	static int countActiveUsers = 0;
 	static int countCreatedDocs = 0;
 	static int countDuplDocs = 0;
@@ -107,7 +107,7 @@ public class ReportFromDatabase implements ReportDatabaseInterface {
 				+"\nMost OCR Runtime : \n"+totalOcrTime+ " \n"+ocrRunTime[0]+" \n"+ocrRunTime[1]+"\n"+ocrRunTime[2]+"\n"+ocrRunTime[3]+"\n"+ocrRunTime[4]+"\n"
 				+"\nMost LA Runtime : \n"+totalLaTime+ " \n"+laRunTime[0]+" \n"+laRunTime[1]+"\n"+laRunTime[2]+"\n"+laRunTime[3]+"\n"+laRunTime[4]+"\n"
 				+"\nJobs processed in total: "+countJobs+" \n"
-				+"\nHTR Models created in total: "+htrModelsCreated+" \n"
+				+"\nHTR Models created in total: \n"+htrModelsCreated+" \n"
 				+"\nCount Created Documents: "+countCreatedDocs+ " \n"
 				+"Count Duplicated Documents: "+countDuplDocs+ " \n"
 				+"Count Export Documents: "+countExpDocs+ " \n"
@@ -324,7 +324,7 @@ public static void getTotalJobTime(Connection conn, int timePeriod, String modul
 		ResultSet rs = prep.executeQuery();
 		
 		int i = 0;
-		while(rs.next()) {
+		while(rs.next() && i < 5) {
 				trainingTime[i] =  String.format(format, rs.getString("userid"),"Time : "+hourFormat( rs.getInt("sum(endtime-starttime)")),"Pages : "+rs.getInt("sum(j.total_work)"));
 				i++;
 		}
@@ -350,6 +350,19 @@ public static void getTrainingTotalTime(Connection conn, int timePeriod) throws 
 		
 	}
 
+public static void getHtrModelCreated(Connection conn, int timePeriod) throws SQLException {
+	String SQL = 	"select count(htr_id), sum(nr_of_words)\n" + 
+			"from htr \n" + 
+			"where created between ? and ?";
+	PreparedStatement prep = conn.prepareStatement(SQL);
+	prep.setDate(1, sqlTimeAgo(timePeriod));
+	prep.setDate(2, sqlTimeNow());
+	ResultSet rs = prep.executeQuery();
+	while(rs.next()) {
+		htrModelsCreated = String.format(format, "TOTAL", "Models created : "+rs.getInt("count(htr_id)"),"Words : "+rs.getInt("sum(nr_of_words)"));
+	}
+}
+
 	public static void generateReport(int timePeriod) {
 
 
@@ -370,6 +383,8 @@ public static void getTrainingTotalTime(Connection conn, int timePeriod) throws 
 			getTotalJobTime(conn, timePeriod, LA_MODULE);
 			
 			getTrainingTotalTime(conn,timePeriod);
+			
+			getHtrModelCreated(conn, timePeriod);
 			
 			getTrainingTime(conn, timePeriod);
 			
