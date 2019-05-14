@@ -314,8 +314,6 @@ public static void getTotalJobTime(Connection conn, int timePeriod, String modul
 		
 		String SQL = 	"select userid ,sum(endtime - starttime),sum(j.total_work)\n" + 
 						"from jobs j \n" + 
-						"join JOB_IMPL_REGISTRY jir\n" + 
-						" on j.JOB_IMPL = jir.JOB_IMPL\n" + 
 						"where j.state like 'FINISHED' and started between ? and ? and  (j.JOB_IMPL like 'CITlabHtrTrainingJob' or j.JOB_IMPL like 'CITlabHtrPlusTrainingJob')\n" + 
 						"group by  userid\n" + 
 						"order by sum(endtime - starttime) DESC\n" + 
@@ -324,11 +322,15 @@ public static void getTotalJobTime(Connection conn, int timePeriod, String modul
 		prep.setDate(1, sqlTimeAgo(timePeriod));
 		prep.setDate(2, sqlTimeNow());
 		ResultSet rs = prep.executeQuery();
-		for(int i = 0; i <= 5; i++) {
-			rs.next();
-			trainingTime[i] =  String.format(format, rs.getString("userid"),"Time : "+hourFormat( rs.getInt("sum(endtime-starttime)")),"Pages : "+rs.getInt("sum(j.total_work)"));
-			
+		
+		int i = 0;
+		while(rs.next()) {
+				trainingTime[i] =  String.format(format, rs.getString("userid"),"Time : "+hourFormat( rs.getInt("sum(endtime-starttime)")),"Pages : "+rs.getInt("sum(j.total_work)"));
+				i++;
 		}
+			
+			
+		
 		
 	}
 	
