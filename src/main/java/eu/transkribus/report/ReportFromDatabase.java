@@ -7,10 +7,12 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.LocalDateTime;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 import javax.mail.MessagingException;
 import javax.persistence.EntityNotFoundException;
@@ -54,6 +56,7 @@ public class ReportFromDatabase implements ReportDatabaseInterface {
 	static String totalLaTime;
 	static String htrModelsCreated;
 	static int countActiveUsers = 0;
+	static int countTotalSaves = 0;
 	static int countCreatedDocs = 0;
 	static int countDuplDocs = 0;
 	static int countExpDocs = 0;
@@ -95,27 +98,34 @@ public class ReportFromDatabase implements ReportDatabaseInterface {
 				break;
 		
 		}
+		String trainingString = Arrays.stream(trainingTime).filter(s -> s != null).collect(Collectors.joining("\n"));
+		String htrRunString = Arrays.stream(htrRunTime).filter(s -> s != null).collect(Collectors.joining("\n"));
+		String ocrRunString = Arrays.stream(ocrRunTime).filter(s -> s != null).collect(Collectors.joining("\n"));
+		String laString = Arrays.stream(laRunTime).filter(s -> s != null).collect(Collectors.joining("\n"));
+		String activeUsersString = Arrays.stream(mostActiveUsers).filter(s -> s != null).collect(Collectors.joining("\n"));
+		String activeSavesString = Arrays.stream(mostActiveUsersSave).filter(s -> s != null).collect(Collectors.joining("\n"));
 		
 		String messageText = "This is the latest report from " + sqlTimeNow()
 				+ " with detailed user data \n"
-				+"\nImages Uploaded : \n" +String.format(format2, "TOTAL",imagesUploaded)+ "\n"
-				+"New Users : \n"+String.format(format2, "TOTAL",countNewUsers)+" \n"
+				+"\nNew Users : \n"+String.format(format2, "TOTAL",countNewUsers)+" \n"
 				+"Active Users / Unique Logins : \n"+ String.format(format2, "TOTAL",countJobs)+" \n"
-				+"\nJobs processed in total: \n"+String.format(format2, "TOTAL",countJobs)+" \n"
-				+"\nCount Created Documents: \n"+String.format(format2, "TOTAL",countCreatedDocs)+ " \n"
+				+"Jobs processed in total: \n"+String.format(format2, "TOTAL",countJobs)+" \n"
+				+"Count Created Documents: \n"+String.format(format2, "TOTAL",countCreatedDocs)+ " \n"
 				+"Count Duplicated Documents: \n"+String.format(format2, "TOTAL",countDuplDocs)+ " \n"
 				+"Count Export Documents: \n"+String.format(format2, "TOTAL",countExpDocs)+ " \n"
 				+"Count Deleted Documents: \n"+String.format(format2, "TOTAL",countDelDocs)+ " \n"
 				+"Count Layout Analysis Jobs: \n"+String.format(format2, "TOTAL",countLayoutAnalysis)+ " \n"
 				+"Count HTR Jobs : \n"+String.format(format2, "TOTAL",countHTR)+ " \n"
 				+"\nHTR Models created in total: \n"+htrModelsCreated+" \n"
-				+"\nMost Active Users Image Uploads : \n\n"+mostActiveUsers[0]+" \n"+mostActiveUsers[1]+"\n"+mostActiveUsers[2]+"\n"+mostActiveUsers[3]+"\n"+mostActiveUsers[4]+"\n"
-				+"\nMost Active Users Save Actions : \n\n"+mostActiveUsersSave[0]+" \n"+mostActiveUsersSave[1]+"\n"+mostActiveUsersSave[2]+"\n"+mostActiveUsersSave[3]+"\n"+mostActiveUsersSave[4]+"\n"
-				+"\nMost Training Runtime : \n"+totalTrainingTime+ " \n"+trainingTime[0]+" \n"+trainingTime[1]+"\n"+trainingTime[2]+"\n"+trainingTime[3]+"\n"+trainingTime[4]+"\n"
-				+"\nMost HTR Runtime : \n"+totalHtrTime+ "\n"+htrRunTime[0]+"\n"+htrRunTime[1]+"\n"+htrRunTime[2]+"\n"+htrRunTime[3]+"\n"+htrRunTime[4]+"\n"
-				+"\nMost OCR Runtime : \n"+totalOcrTime+ " \n"+ocrRunTime[0]+" \n"+ocrRunTime[1]+"\n"+ocrRunTime[2]+"\n"+ocrRunTime[3]+"\n"+ocrRunTime[4]+"\n"
-				+"\nMost LA Runtime : \n"+totalLaTime+ " \n"+laRunTime[0]+" \n"+laRunTime[1]+"\n"+laRunTime[2]+"\n"+laRunTime[3]+"\n"+laRunTime[4]+"\n"
+				+"\nMost Active Users Image Uploads : \n"+String.format(format2, "TOTAL",imagesUploaded)+"\n"+activeUsersString+"\n"
+				+"\nMost Active Users Save Actions : \n"+String.format(format2, "TOTAL",countTotalSaves)+" \n"+activeSavesString+"\n"
+				+"\nMost Training Runtime : \n"+totalTrainingTime+ " \n"+trainingString+"\n"
+				+"\nMost HTR Runtime : \n"+totalHtrTime+ "\n"+htrRunString+"\n"
+				+"\nMost OCR Runtime : \n"+totalOcrTime+ " \n"+ocrRunString+"\n"
+				+"\nMost LA Runtime : \n"+totalLaTime+ " \n"+laString+"\n"
 				 ;
+		
+		
 		
 		for (String mailTo : mailingList) {
 
@@ -155,6 +165,7 @@ public class ReportFromDatabase implements ReportDatabaseInterface {
 		String sqlHtrPages = "select pages,docid from jobs where module_name like 'CITlabHtrAppModule' and started between ? and ?";
 		String sqlImages = "select count(*) from images join pages on IMAGES.IMAGE_ID = PAGES.IMAGE_ID join doc_md on PAGES.DOCID = DOC_MD.DOCID where images.created between ? and ?";
 		String sqlJobs = "select count(*) from jobs where started between ? and ? order by started desc";
+		String sqlSavesTotal = "select count(*) from actions where type_id = 1 and time between ? and ?";
 		
 		PreparedStatement prep1 = conn.prepareStatement(sqlLogins);
 		PreparedStatement prep2 = conn.prepareStatement(sqlMostActive);
@@ -170,6 +181,7 @@ public class ReportFromDatabase implements ReportDatabaseInterface {
 		PreparedStatement prep11 = conn.prepareStatement(sqlHtrPages);
 		PreparedStatement prep12 = conn.prepareStatement(sqlImages);
 		PreparedStatement prep13 = conn.prepareStatement(sqlJobs);
+		PreparedStatement prep14 = conn.prepareStatement(sqlSavesTotal);
 		
 		prep1.setDate(1, sqlTimeAgo(timePeriod));
 		prep1.setDate(2, sqlTimeNow());
@@ -210,6 +222,9 @@ public class ReportFromDatabase implements ReportDatabaseInterface {
 		prep13.setDate(1, sqlTimeAgo(timePeriod));
 		prep13.setDate(2, sqlTimeNow());
 		
+		prep14.setDate(1, sqlTimeAgo(timePeriod));
+		prep14.setDate(2, sqlTimeNow());
+		
 		ResultSet rs1 = prep1.executeQuery();
 		ResultSet rs2 = prep2.executeQuery();
 		ResultSet rs3 = prep3.executeQuery();
@@ -223,8 +238,9 @@ public class ReportFromDatabase implements ReportDatabaseInterface {
 		ResultSet rs11 = prep11.executeQuery();
 		ResultSet rs12 = prep12.executeQuery();
 		ResultSet rs13 = prep13.executeQuery();
+		ResultSet rs14 = prep14.executeQuery();
 		
-		while (rs1.next() && rs4.next() && rs5.next() && rs6.next() && rs7.next() && rs8.next() && rs9.next() && rs10.next() && rs11.next() && rs12.next() && rs13.next()) {
+		while (rs1.next() && rs4.next() && rs5.next() && rs6.next() && rs7.next() && rs8.next() && rs9.next() && rs10.next() && rs11.next() && rs12.next() && rs13.next() && rs14.next()) {
 			countActiveUsers = rs1.getInt("count(distinctuser_id)");
 			countLayoutAnalysis = rs4.getInt("count(*)");
 			countHTR = rs5.getInt("count(*)");
@@ -235,6 +251,7 @@ public class ReportFromDatabase implements ReportDatabaseInterface {
 			countDelDocs = rs10.getInt("count(*)");
 			imagesUploaded = rs12.getInt("count(*)");
 			countJobs = rs13.getInt("count(*)");
+			countTotalSaves = rs14.getInt("count(*)");
 			if(rs11.getString("pages") != null){
 				try {
 					pageIndices = CoreUtils.parseRangeListStr(rs11.getString("pages"),rs11.getInt("docid"));
@@ -268,7 +285,7 @@ public class ReportFromDatabase implements ReportDatabaseInterface {
 		prep.setDate(3, sqlTimeNow());
 		ResultSet rs = prep.executeQuery();
 		
-		for(int i = 0; i <= 5; i++) {
+		for(int i = 0; i < 5; i++) {
 			rs.next();
 			switch(moduleName) {
 			case HTR_MODULE:
@@ -326,7 +343,7 @@ public static void getTotalJobTime(Connection conn, int timePeriod, String modul
 		ResultSet rs = prep.executeQuery();
 		
 		int i = 0;
-		while(rs.next() && i < 5) {
+		while(rs.next() && i <= 5) {
 				trainingTime[i] =  String.format(format, rs.getString("userid"),"Time : "+hourFormat( rs.getInt("sum(endtime-starttime)")),"Pages : "+rs.getInt("sum(j.total_work)"));
 				i++;
 		}
@@ -351,6 +368,7 @@ public static void getTrainingTotalTime(Connection conn, int timePeriod) throws 
 		
 		
 	}
+
 
 public static void getHtrModelCreated(Connection conn, int timePeriod) throws SQLException {
 	String SQL = 	"select count(htr_id), sum(nr_of_words)\n" + 
