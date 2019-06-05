@@ -65,6 +65,7 @@ public class ReportFromDatabase implements ReportDatabaseInterface {
 	static Set <Integer> pageIndices = new HashSet<Integer>();
 	static String format = "%1$-50s | %2$-30s | %3$-30s";
 	static String format2 = "%1$-50s | %2$-30s";
+	static String format3 = "%1$-50s ";
 	
 
 	public static java.sql.Date sqlTimeNow() {
@@ -97,23 +98,24 @@ public class ReportFromDatabase implements ReportDatabaseInterface {
 		
 		String messageText = "This is the latest report from " + sqlTimeNow()
 				+ " with detailed user data \n"
-				+"\nImages Uploaded : " +imagesUploaded+ "\n"
-				+"New Users : "+countNewUsers+" \n"
-				+"Active Users / Unique Logins : "+countActiveUsers+" \n"
+				+"\nImages Uploaded : \n" +String.format(format2, "TOTAL",imagesUploaded)+ "\n"
+				+"New Users : \n"+String.format(format2, "TOTAL",countNewUsers)+" \n"
+				+"Active Users / Unique Logins : \n"+ String.format(format2, "TOTAL",countJobs)+" \n"
+				+"\nJobs processed in total: \n"+String.format(format2, "TOTAL",countJobs)+" \n"
+				+"\nCount Created Documents: \n"+String.format(format2, "TOTAL",countCreatedDocs)+ " \n"
+				+"Count Duplicated Documents: \n"+String.format(format2, "TOTAL",countDuplDocs)+ " \n"
+				+"Count Export Documents: \n"+String.format(format2, "TOTAL",countExpDocs)+ " \n"
+				+"Count Deleted Documents: \n"+String.format(format2, "TOTAL",countDelDocs)+ " \n"
+				+"Count Layout Analysis Jobs: \n"+String.format(format2, "TOTAL",countLayoutAnalysis)+ " \n"
+				+"Count HTR Jobs : \n"+String.format(format2, "TOTAL",countHTR)+ " \n"
+				+"\nHTR Models created in total: \n"+htrModelsCreated+" \n"
 				+"\nMost Active Users Image Uploads : \n\n"+mostActiveUsers[0]+" \n"+mostActiveUsers[1]+"\n"+mostActiveUsers[2]+"\n"+mostActiveUsers[3]+"\n"+mostActiveUsers[4]+"\n"
 				+"\nMost Active Users Save Actions : \n\n"+mostActiveUsersSave[0]+" \n"+mostActiveUsersSave[1]+"\n"+mostActiveUsersSave[2]+"\n"+mostActiveUsersSave[3]+"\n"+mostActiveUsersSave[4]+"\n"
 				+"\nMost Training Runtime : \n"+totalTrainingTime+ " \n"+trainingTime[0]+" \n"+trainingTime[1]+"\n"+trainingTime[2]+"\n"+trainingTime[3]+"\n"+trainingTime[4]+"\n"
 				+"\nMost HTR Runtime : \n"+totalHtrTime+ "\n"+htrRunTime[0]+"\n"+htrRunTime[1]+"\n"+htrRunTime[2]+"\n"+htrRunTime[3]+"\n"+htrRunTime[4]+"\n"
 				+"\nMost OCR Runtime : \n"+totalOcrTime+ " \n"+ocrRunTime[0]+" \n"+ocrRunTime[1]+"\n"+ocrRunTime[2]+"\n"+ocrRunTime[3]+"\n"+ocrRunTime[4]+"\n"
 				+"\nMost LA Runtime : \n"+totalLaTime+ " \n"+laRunTime[0]+" \n"+laRunTime[1]+"\n"+laRunTime[2]+"\n"+laRunTime[3]+"\n"+laRunTime[4]+"\n"
-				+"\nJobs processed in total: "+countJobs+" \n"
-				+"\nHTR Models created in total: \n"+htrModelsCreated+" \n"
-				+"\nCount Created Documents: "+countCreatedDocs+ " \n"
-				+"Count Duplicated Documents: "+countDuplDocs+ " \n"
-				+"Count Export Documents: "+countExpDocs+ " \n"
-				+"Count Deleted Documents: "+countDelDocs+ " \n"
-				+"Count Layout Analysis Jobs: "+countLayoutAnalysis+ " \n"
-				+"Count HTR Jobs : "+countHTR+ " \n" ;
+				 ;
 		
 		for (String mailTo : mailingList) {
 
@@ -420,8 +422,6 @@ public static void getHtrModelCreated(Connection conn, int timePeriod) throws SQ
 				DbConnection.shutDown();
 			}
 		});
-		new File("images").mkdir();
-		new File("report").mkdir();
 		generateReport(Integer.parseInt(args[0]));
 		Runtime.getRuntime().exit(0);
 	}
