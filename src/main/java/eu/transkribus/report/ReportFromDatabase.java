@@ -108,7 +108,7 @@ public class ReportFromDatabase implements ReportDatabaseInterface {
 		String messageText = "This is the latest report from " + sqlTimeNow()
 				+ " with detailed user data \n"
 				+"\nNew Users : \n"+String.format(format2, "TOTAL",countNewUsers)+" \n"
-				+"Active Users / Unique Logins : \n"+ String.format(format2, "TOTAL",countJobs)+" \n"
+				+"Active Users / Unique Logins : \n"+ String.format(format2, "TOTAL",countActiveUsers)+" \n"
 				+"Jobs processed in total: \n"+String.format(format2, "TOTAL",countJobs)+" \n"
 				+"Count Created Documents: \n"+String.format(format2, "TOTAL",countCreatedDocs)+ " \n"
 				+"Count Duplicated Documents: \n"+String.format(format2, "TOTAL",countDuplDocs)+ " \n"
