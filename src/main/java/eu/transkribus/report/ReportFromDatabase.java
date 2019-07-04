@@ -289,14 +289,14 @@ public class ReportFromDatabase implements ReportDatabaseInterface {
 			rs.next();
 			switch(moduleName) {
 			case HTR_MODULE:
-				htrRunTime[i] = String.format(format, rs.getString("userid"),"Time : "+hourFormat( rs.getInt("sum(endtime-starttime)")),"Pages : "+rs.getInt("sum(total_work)"));
+				htrRunTime[i] = String.format(format, rs.getString("userid"),"Time : "+hourFormat( rs.getLong("sum(endtime-starttime)")),"Pages : "+rs.getLong("sum(total_work)"));
 				break;
 			case OCR_MODULE:
 				
-				ocrRunTime[i] = String.format(format, rs.getString("userid"),"Time : "+hourFormat( rs.getInt("sum(endtime-starttime)")),"Pages : "+rs.getInt("sum(total_work)"));
+				ocrRunTime[i] = String.format(format, rs.getString("userid"),"Time : "+hourFormat( rs.getLong("sum(endtime-starttime)")),"Pages : "+rs.getLong("sum(total_work)"));
 				break;
 			case LA_MODULE:
-				laRunTime[i] = String.format(format, rs.getString("userid"),"Time : "+hourFormat( rs.getInt("sum(endtime-starttime)")),"Pages : "+rs.getInt("sum(total_work)"));
+				laRunTime[i] = String.format(format, rs.getString("userid"),"Time : "+hourFormat( rs.getLong("sum(endtime-starttime)")),"Pages : "+rs.getLong("sum(total_work)"));
 			}
 		
 		}
