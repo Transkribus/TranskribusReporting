@@ -68,9 +68,9 @@ public class ReportFromDatabase implements ReportDatabaseInterface {
 	static int countKWS = 0;
 	static int countTags = 0;
 	static Set <Integer> pageIndices = new HashSet<Integer>();
-	static String format = "%1$-50s | %2$-30s | %3$-30s";
-	static String format2 = "%1$-50s | %2$-30s";
-	static String format3 = "%1$-50s ";
+	static String format = "%s : %s | %s";
+	static String format2 = "%s : %s";
+	static String format3 = "%s ";
 	
 
 	public static java.sql.Date sqlTimeNow() {
@@ -110,24 +110,24 @@ public class ReportFromDatabase implements ReportDatabaseInterface {
 		String activeDocScanString = Arrays.stream(mostActiveDocScan).filter(s -> s != null).collect(Collectors.joining("\n"));
 		
 		String messageText = "This is the latest report from " + sqlTimeNow()
-				+ " with detailed user data over "+timePeriod+" days \n"
-				+"\nNew Users : \n"+String.format(format2, "TOTAL",countNewUsers)+" \n"
-				+"Active Users / Unique Logins : \n"+ String.format(format2, "TOTAL",countActiveUsers)+" \n"
-				+"Jobs processed in total: \n"+String.format(format2, "TOTAL",countJobs)+" \n"
-				+"Count Created Documents: \n"+String.format(format2, "TOTAL",countCreatedDocs)+ " \n"
-				+"Count Duplicated Documents: \n"+String.format(format2, "TOTAL",countDuplDocs)+ " \n"
-				+"Count Export Documents: \n"+String.format(format2, "TOTAL",countExpDocs)+ " \n"
-				+"Count Deleted Documents: \n"+String.format(format2, "TOTAL",countDelDocs)+ " \n"
-				+"Count Layout Analysis Jobs: \n"+String.format(format2, "TOTAL",countLayoutAnalysis)+ " \n"
-				+"Count HTR Jobs : \n"+String.format(format2, "TOTAL",countHTR)+ " \n"
-				+"\nHTR Models created in total: \n"+htrModelsCreated+" \n"
-				+"\nMost Active Users Image Uploads : \n"+String.format(format2, "TOTAL",imagesUploaded)+"\n"+activeUsersString+"\n"
-				+"\nMost Active Users DocScan Uploads : \n"+String.format(format2, "TOTAL",docScanUploaded)+"\n"+activeDocScanString+"\n"
-				+"\nMost Active Users Save Actions : \n"+String.format(format2, "TOTAL",countTotalSaves)+" \n"+activeSavesString+"\n"
-				+"\nMost Training Runtime : \n"+totalTrainingTime+ " \n"+trainingString+"\n"
-				+"\nMost HTR Runtime : \n"+totalHtrTime+ "\n"+htrRunString+"\n"
-				+"\nMost OCR Runtime : \n"+totalOcrTime+ " \n"+ocrRunString+"\n"
-				+"\nMost LA Runtime : \n"+totalLaTime+ " \n"+laString+"\n"
+				+ " with detailed user data over a period of "+timePeriod+" day(s) \n"
+				+"\nNew Users : "+countNewUsers+" \n"
+				+"Active Users / Unique Logins : "+ countActiveUsers+" \n"
+				+"Jobs processed in total: "+countJobs+" \n"
+				+"Created Documents: "+countCreatedDocs+ " \n"
+				+"Duplicated Documents: "+countDuplDocs+ " \n"
+				+"Export Documents: "+countExpDocs+ " \n"
+				+"Deleted Documents: "+countDelDocs+ " \n"
+				+"Layout Analysis Jobs: "+countLayoutAnalysis+ " \n"
+				+"HTR Jobs : "+countHTR+ " \n"
+				+"HTR Models created: "+htrModelsCreated+" \n"
+				+"\nImage Uploads : "+imagesUploaded+"\n"+activeUsersString+"\n"
+				+"\nDocScan Uploads : "+docScanUploaded+"\n"+activeDocScanString+"\n"
+				+"\nSave Actions : "+countTotalSaves+" \n"+activeSavesString+"\n"
+				+"\nTraining Runtime : "+totalTrainingTime+ " \n"+trainingString+"\n"
+				+"\nHTR Runtime : "+totalHtrTime+ "\n"+htrRunString+"\n"
+				+"\nOCR Runtime : "+totalOcrTime+ " \n"+ocrRunString+"\n"
+				+"\nLA Runtime : "+totalLaTime+ " \n"+laString+"\n"
 				 ;
 		
 		
@@ -320,14 +320,13 @@ public class ReportFromDatabase implements ReportDatabaseInterface {
 			rs.next();
 			switch(moduleName) {
 			case HTR_MODULE:
-				htrRunTime[i] = String.format(format, rs.getString("userid"),"Time : "+hourFormat( rs.getLong("sum(endtime-starttime)")),"Pages : "+rs.getLong("sum(total_work)"));
+				htrRunTime[i] = String.format(format, rs.getString("userid")," "+hourFormat( rs.getLong("sum(endtime-starttime)")),"Pages : "+rs.getLong("sum(total_work)"));
 				break;
-			case OCR_MODULE:
-				
-				ocrRunTime[i] = String.format(format, rs.getString("userid"),"Time : "+hourFormat( rs.getLong("sum(endtime-starttime)")),"Pages : "+rs.getLong("sum(total_work)"));
+			case OCR_MODULE:			
+				ocrRunTime[i] = String.format(format2, rs.getString("userid")," "+hourFormat( rs.getLong("sum(endtime-starttime)")));
 				break;
 			case LA_MODULE:
-				laRunTime[i] = String.format(format, rs.getString("userid"),"Time : "+hourFormat( rs.getLong("sum(endtime-starttime)")),"Pages : "+rs.getLong("sum(total_work)"));
+				laRunTime[i] = String.format(format, rs.getString("userid")," "+hourFormat( rs.getLong("sum(endtime-starttime)")),"Pages : "+rs.getLong("sum(total_work)"));
 			}
 		
 		}
@@ -347,13 +346,13 @@ public static void getTotalJobTime(Connection conn, int timePeriod, String modul
 		while(rs.next()) {
 			switch(moduleName) {
 			case HTR_MODULE:
-				totalHtrTime = String.format(format, "TOTAL","Time : "+ hourFormat(rs.getLong("sum(endtime-starttime)")),"Pages : "+rs.getInt("sum(total_work)"));
+				totalHtrTime = " "+hourFormat(rs.getLong("sum(endtime-starttime)"))+" | Pages : "+rs.getInt("sum(total_work)");
 				break;
 			case OCR_MODULE:
-				totalOcrTime = String.format(format, "TOTAL", "Time : "+hourFormat(rs.getLong("sum(endtime-starttime)")),"Pages : "+rs.getInt("sum(total_work)"));
+				totalOcrTime =" "+hourFormat(rs.getLong("sum(endtime-starttime)"));
 				break;
 			case LA_MODULE:
-				totalLaTime= String.format(format, "TOTAL", "Time : "+hourFormat(rs.getLong("sum(endtime-starttime)")),"Pages : "+rs.getInt("sum(total_work)"));
+				totalLaTime= " "+hourFormat(rs.getLong("sum(endtime-starttime)"))+" | Pages : "+rs.getInt("sum(total_work)");
 			}
 		
 		}
@@ -375,7 +374,7 @@ public static void getTotalJobTime(Connection conn, int timePeriod, String modul
 		
 		int i = 0;
 		while(rs.next() && i <= 5) {
-				trainingTime[i] =  String.format(format, rs.getString("userid"),"Time : "+hourFormat( rs.getInt("sum(endtime-starttime)")),"Pages : "+rs.getInt("sum(j.total_work)"));
+				trainingTime[i] =  String.format(format2, rs.getString("userid")," "+hourFormat( rs.getInt("sum(endtime-starttime)")));
 				i++;
 		}
 			
@@ -394,7 +393,7 @@ public static void getTrainingTotalTime(Connection conn, int timePeriod) throws 
 		prep.setDate(2, sqlTimeNow());
 		ResultSet rs = prep.executeQuery();
 		while(rs.next()) {
-			totalTrainingTime = String.format(format, "TOTAL", "Time : "+hourFormat(rs.getLong("sum(endtime-starttime)")),"Pages : "+rs.getInt("sum(total_work)"));
+			totalTrainingTime = " "+hourFormat(rs.getLong("sum(endtime-starttime)"));
 		}
 		
 		
@@ -410,7 +409,7 @@ public static void getHtrModelCreated(Connection conn, int timePeriod) throws SQ
 	prep.setDate(2, sqlTimeNow());
 	ResultSet rs = prep.executeQuery();
 	while(rs.next()) {
-		htrModelsCreated = String.format(format, "TOTAL", "Models created : "+rs.getInt("count(htr_id)"),"Words : "+rs.getInt("sum(nr_of_words)"));
+		htrModelsCreated =  ""+rs.getInt("count(htr_id)")+" | Words : "+rs.getInt("sum(nr_of_words)");
 	}
 }
 
