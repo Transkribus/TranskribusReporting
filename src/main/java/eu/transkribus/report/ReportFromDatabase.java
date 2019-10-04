@@ -98,6 +98,7 @@ public class ReportFromDatabase implements ReportDatabaseInterface {
 				break;
 		case 30: reportTime = "Monthly";
 				break;
+		default: reportTime = "";
 		
 		}
 		String trainingString = Arrays.stream(trainingTime).filter(s -> s != null).collect(Collectors.joining("\n"));
@@ -109,7 +110,7 @@ public class ReportFromDatabase implements ReportDatabaseInterface {
 		String activeDocScanString = Arrays.stream(mostActiveDocScan).filter(s -> s != null).collect(Collectors.joining("\n"));
 		
 		String messageText = "This is the latest report from " + sqlTimeNow()
-				+ " with detailed user data \n"
+				+ " with detailed user data over "+timePeriod+" days \n"
 				+"\nNew Users : \n"+String.format(format2, "TOTAL",countNewUsers)+" \n"
 				+"Active Users / Unique Logins : \n"+ String.format(format2, "TOTAL",countActiveUsers)+" \n"
 				+"Jobs processed in total: \n"+String.format(format2, "TOTAL",countJobs)+" \n"
