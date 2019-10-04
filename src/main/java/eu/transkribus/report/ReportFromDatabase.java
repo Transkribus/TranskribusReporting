@@ -41,10 +41,12 @@ public class ReportFromDatabase implements ReportDatabaseInterface {
 	private final static String LA_MODULE = "CITlabAdvancedLaJobMultiThread";
 	
 	static int imagesUploaded = 0;
+	static int docScanUploaded = 0;
 	static int countJobs = 0;
 	static int countNewUsers = 0;
 	static int countUsers = 0;
 	static String [] mostActiveUsers = new String[6];
+	static String [] mostActiveDocScan = new String[6];
 	static String [] mostActiveUsersSave = new String[6];
 	static String [] trainingTime = new String[6];
 	static String [] htrRunTime = new String[6];
@@ -104,6 +106,7 @@ public class ReportFromDatabase implements ReportDatabaseInterface {
 		String laString = Arrays.stream(laRunTime).filter(s -> s != null).collect(Collectors.joining("\n"));
 		String activeUsersString = Arrays.stream(mostActiveUsers).filter(s -> s != null).collect(Collectors.joining("\n"));
 		String activeSavesString = Arrays.stream(mostActiveUsersSave).filter(s -> s != null).collect(Collectors.joining("\n"));
+		String activeDocScanString = Arrays.stream(mostActiveDocScan).filter(s -> s != null).collect(Collectors.joining("\n"));
 		
 		String messageText = "This is the latest report from " + sqlTimeNow()
 				+ " with detailed user data \n"
@@ -118,6 +121,7 @@ public class ReportFromDatabase implements ReportDatabaseInterface {
 				+"Count HTR Jobs : \n"+String.format(format2, "TOTAL",countHTR)+ " \n"
 				+"\nHTR Models created in total: \n"+htrModelsCreated+" \n"
 				+"\nMost Active Users Image Uploads : \n"+String.format(format2, "TOTAL",imagesUploaded)+"\n"+activeUsersString+"\n"
+				+"\nMost Active Users DocScan Uploads : \n"+String.format(format2, "TOTAL",docScanUploaded)+"\n"+activeDocScanString+"\n"
 				+"\nMost Active Users Save Actions : \n"+String.format(format2, "TOTAL",countTotalSaves)+" \n"+activeSavesString+"\n"
 				+"\nMost Training Runtime : \n"+totalTrainingTime+ " \n"+trainingString+"\n"
 				+"\nMost HTR Runtime : \n"+totalHtrTime+ "\n"+htrRunString+"\n"
@@ -166,6 +170,13 @@ public class ReportFromDatabase implements ReportDatabaseInterface {
 		String sqlImages = "select count(*) from images join pages on IMAGES.IMAGE_ID = PAGES.IMAGE_ID join doc_md on PAGES.DOCID = DOC_MD.DOCID where images.created between ? and ?";
 		String sqlJobs = "select count(*) from jobs where started between ? and ? order by started desc";
 		String sqlSavesTotal = "select count(*) from actions where type_id = 1 and time between ? and ?";
+		String sqlDocScanImages = "select count(*) from images \n" + 
+				"join pages on IMAGES.IMAGE_ID = PAGES.IMAGE_ID join jobs on PAGES.DOCID = jobs.DOCID join session_history on jobs.SESSION_HISTORY_ID = session_history.SESSION_HISTORY_ID \n" + 
+				"where session_history.USERAGENT like '%Android%' and images.CREATED between ? and ?";
+		String sqlDocScanUsers = "select distinct jobs.USERID, count (distinct images.image_id) from images \n" + 
+				"join pages on IMAGES.IMAGE_ID = PAGES.IMAGE_ID join jobs on PAGES.DOCID = jobs.DOCID join session_history on jobs.SESSION_HISTORY_ID = session_history.SESSION_HISTORY_ID \n" + 
+				"where session_history.USERAGENT like '%Android%' and images.CREATED between ? and ? \n" + 
+				"group by jobs.USERID order by count(distinct images.image_id) desc";
 		
 		PreparedStatement prep1 = conn.prepareStatement(sqlLogins);
 		PreparedStatement prep2 = conn.prepareStatement(sqlMostActive);
@@ -182,6 +193,9 @@ public class ReportFromDatabase implements ReportDatabaseInterface {
 		PreparedStatement prep12 = conn.prepareStatement(sqlImages);
 		PreparedStatement prep13 = conn.prepareStatement(sqlJobs);
 		PreparedStatement prep14 = conn.prepareStatement(sqlSavesTotal);
+		
+		PreparedStatement prep15 = conn.prepareStatement(sqlDocScanImages);
+		PreparedStatement prep16 = conn.prepareStatement(sqlDocScanUsers);
 		
 		prep1.setDate(1, sqlTimeAgo(timePeriod));
 		prep1.setDate(2, sqlTimeNow());
@@ -225,6 +239,12 @@ public class ReportFromDatabase implements ReportDatabaseInterface {
 		prep14.setDate(1, sqlTimeAgo(timePeriod));
 		prep14.setDate(2, sqlTimeNow());
 		
+		prep15.setDate(1, sqlTimeAgo(timePeriod));
+		prep15.setDate(2, sqlTimeNow());
+		
+		prep16.setDate(1, sqlTimeAgo(timePeriod));
+		prep16.setDate(2, sqlTimeNow());
+		
 		ResultSet rs1 = prep1.executeQuery();
 		ResultSet rs2 = prep2.executeQuery();
 		ResultSet rs3 = prep3.executeQuery();
@@ -239,8 +259,10 @@ public class ReportFromDatabase implements ReportDatabaseInterface {
 		ResultSet rs12 = prep12.executeQuery();
 		ResultSet rs13 = prep13.executeQuery();
 		ResultSet rs14 = prep14.executeQuery();
+		ResultSet rs15 = prep15.executeQuery();
+		ResultSet rs16 = prep16.executeQuery();
 		
-		while (rs1.next() && rs4.next() && rs5.next() && rs6.next() && rs7.next() && rs8.next() && rs9.next() && rs10.next() && rs11.next() && rs12.next() && rs13.next() && rs14.next()) {
+		while (rs1.next() && rs4.next() && rs5.next() && rs6.next() && rs7.next() && rs8.next() && rs9.next() && rs10.next() && rs11.next() && rs12.next() && rs13.next() && rs14.next() && rs15.next()) {
 			countActiveUsers = rs1.getInt("count(distinctuser_id)");
 			countLayoutAnalysis = rs4.getInt("count(*)");
 			countHTR = rs5.getInt("count(*)");
@@ -250,6 +272,7 @@ public class ReportFromDatabase implements ReportDatabaseInterface {
 			countExpDocs = rs9.getInt("count(*)");
 			countDelDocs = rs10.getInt("count(*)");
 			imagesUploaded = rs12.getInt("count(*)");
+			docScanUploaded = rs15.getInt("count(*)");
 			countJobs = rs13.getInt("count(*)");
 			countTotalSaves = rs14.getInt("count(*)");
 			if(rs11.getString("pages") != null){
@@ -262,10 +285,17 @@ public class ReportFromDatabase implements ReportDatabaseInterface {
 			
 		}
 		for(int i = 0; i <= 5; i++) {
-			rs2.next();
-			rs3.next();
-			mostActiveUsers[i] = String.format(format2, rs2.getString("uploader"),rs2.getInt("count(distinctimages.image_id)"));
-			mostActiveUsersSave[i] = String.format(format2,rs3.getString("user_name"),rs3.getInt("count(type_id)"));
+			if(rs2.next()) {
+				mostActiveUsers[i] = String.format(format2, rs2.getString("uploader"),rs2.getInt("count(distinctimages.image_id)"));
+			}
+			
+			if(rs3.next()) {
+				mostActiveUsersSave[i] = String.format(format2,rs3.getString("user_name"),rs3.getInt("count(type_id)"));
+			}
+
+			if(rs16.next()) {
+				mostActiveDocScan[i] = String.format(format2,rs16.getString("userid"),rs16.getInt("count(distinctimages.image_id)"));
+			}		
 		}
 		
 		
