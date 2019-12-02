@@ -118,6 +118,7 @@ public class ReportFromDatabase implements ReportDatabaseInterface {
 				+"Duplicated Documents: "+countDuplDocs+ " \n"
 				+"Export Documents: "+countExpDocs+ " \n"
 				+"Deleted Documents: "+countDelDocs+ " \n"
+				+"KWS searches: "+countKWS+ " \n"
 				+"Layout Analysis Jobs: "+countLayoutAnalysis+ " \n"
 				+"HTR Jobs : "+countHTR+ " \n"
 				+"HTR Models created: "+htrModelsCreated+" \n"
