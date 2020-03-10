@@ -20,6 +20,8 @@ import javax.persistence.EntityNotFoundException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.sun.xml.bind.v2.runtime.RuntimeUtil;
+
 import eu.transkribus.core.model.beans.auth.TrpUser;
 import eu.transkribus.core.util.CoreUtils;
 import eu.transkribus.persistence.DbConnection;
@@ -57,6 +59,7 @@ public class ReportFromDatabase implements ReportDatabaseInterface {
 	static String totalOcrTime;
 	static String totalLaTime;
 	static String htrModelsCreated;
+	static String runningTotals = "Running Totals : ";
 	static int countActiveUsers = 0;
 	static int countTotalSaves = 0;
 	static int countCreatedDocs = 0;
@@ -129,7 +132,7 @@ public class ReportFromDatabase implements ReportDatabaseInterface {
 				+"\nHTR Runtime : "+totalHtrTime+ "\n"+htrRunString+"\n"
 				+"\nOCR Runtime : "+totalOcrTime+ " \n"+ocrRunString+"\n"
 				+"\nLA Runtime : "+totalLaTime+ " \n"+laString+"\n"
-				 ;
+				+"\n"+runningTotals;
 		
 		
 		
@@ -154,6 +157,10 @@ public class ReportFromDatabase implements ReportDatabaseInterface {
 		try {
 			List<TrpUser> userList = dao.getUserByDate(sqlTimeAgo(timePeriod), true);
 			countNewUsers = userList.size();
+			List<TrpUser> totalUser = dao.getUserList(-1, -1, false, null, null);
+			List<TrpUser> totalActiveUser = dao.getUserList(-1, -1, true, null, null);
+			runningTotals += "\nTotal Users : "+totalUser.size()
+							+"\nTotal Active Users (Activated account via registration link) : "+totalActiveUser.size();
 		} catch (EntityNotFoundException | SQLException e) {
 			logger.error(e.getMessage(), e);
 		}
@@ -333,31 +340,31 @@ public class ReportFromDatabase implements ReportDatabaseInterface {
 		}
 	}
 	
-public static void getTotalJobTime(Connection conn, int timePeriod, String moduleName) throws SQLException {
+	public static void getTotalJobTime(Connection conn, int timePeriod, String moduleName) throws SQLException {
+			
+			String SQL =	"select sum(endtime - starttime),sum(total_work)\n" + 
+							"from jobs\n" + 
+							"where job_impl like ? and STATE like 'FINISHED' and started between ? and ?";
+			PreparedStatement prep = conn.prepareStatement(SQL);
+			prep.setString(1, moduleName);
+			prep.setDate(2, sqlTimeAgo(timePeriod));
+			prep.setDate(3, sqlTimeNow());
+			ResultSet rs = prep.executeQuery();
 		
-		String SQL =	"select sum(endtime - starttime),sum(total_work)\n" + 
-						"from jobs\n" + 
-						"where job_impl like ? and STATE like 'FINISHED' and started between ? and ?";
-		PreparedStatement prep = conn.prepareStatement(SQL);
-		prep.setString(1, moduleName);
-		prep.setDate(2, sqlTimeAgo(timePeriod));
-		prep.setDate(3, sqlTimeNow());
-		ResultSet rs = prep.executeQuery();
-	
-		while(rs.next()) {
-			switch(moduleName) {
-			case HTR_MODULE:
-				totalHtrTime = " "+hourFormat(rs.getLong("sum(endtime-starttime)"))+" | Pages : "+rs.getInt("sum(total_work)");
-				break;
-			case OCR_MODULE:
-				totalOcrTime =" "+hourFormat(rs.getLong("sum(endtime-starttime)"));
-				break;
-			case LA_MODULE:
-				totalLaTime= " "+hourFormat(rs.getLong("sum(endtime-starttime)"))+" | Pages : "+rs.getInt("sum(total_work)");
+			while(rs.next()) {
+				switch(moduleName) {
+				case HTR_MODULE:
+					totalHtrTime = " "+hourFormat(rs.getLong("sum(endtime-starttime)"))+" | Pages : "+rs.getInt("sum(total_work)");
+					break;
+				case OCR_MODULE:
+					totalOcrTime =" "+hourFormat(rs.getLong("sum(endtime-starttime)"));
+					break;
+				case LA_MODULE:
+					totalLaTime= " "+hourFormat(rs.getLong("sum(endtime-starttime)"))+" | Pages : "+rs.getInt("sum(total_work)");
+				}
+			
 			}
-		
 		}
-	}
 	
 	
 	public static void getTrainingTime(Connection conn, int timePeriod) throws SQLException {
@@ -377,42 +384,66 @@ public static void getTotalJobTime(Connection conn, int timePeriod, String modul
 		while(rs.next() && i <= 5) {
 				trainingTime[i] =  String.format(format2, rs.getString("userid")," "+hourFormat( rs.getInt("sum(endtime-starttime)")));
 				i++;
-		}
-			
-			
-		
+		}	
 		
 	}
 	
-public static void getTrainingTotalTime(Connection conn, int timePeriod) throws SQLException {
+	public static void getTrainingTotalTime(Connection conn, int timePeriod) throws SQLException {
+			
+			String SQL = 	"select sum(endtime - starttime),sum(total_work)\n" + 
+							"from jobs j \n" + 
+							"where j.state like 'FINISHED' and started between ? and ? and  (j.JOB_IMPL like 'CITlabHtrTrainingJob' or j.JOB_IMPL like 'CITlabHtrPlusTrainingJob')";
+			PreparedStatement prep = conn.prepareStatement(SQL);
+			prep.setDate(1, sqlTimeAgo(timePeriod));
+			prep.setDate(2, sqlTimeNow());
+			ResultSet rs = prep.executeQuery();
+			while(rs.next()) {
+				totalTrainingTime = " "+hourFormat(rs.getLong("sum(endtime-starttime)"));
+			}
+			
+			
+		}
+	
+	private static void getRunningTotals(Connection conn) throws SQLException {
+		String SQL = 	"select count(htr_id) as models\n" + 
+						"from htr";
+		PreparedStatement prep = conn.prepareStatement(SQL);
+		ResultSet rs = prep.executeQuery();
+		while(rs.next()) {
+			runningTotals += "\nTotal HTR Models : "+rs.getInt("models");
+		}
+		SQL = 	"select count(*)\n" + 
+				"from images join pages on IMAGES.IMAGE_ID = PAGES.IMAGE_ID join doc_md on PAGES.DOCID = DOC_MD.DOCID";
+		prep = conn.prepareStatement(SQL);
+		rs = prep.executeQuery();
+		while(rs.next()) {
+			runningTotals += "\nTotal Images : "+rs.getInt("count(*)");
+		}
+		SQL = 	"select count(*) from images\n" + 
+				"join pages on IMAGES.IMAGE_ID = PAGES.IMAGE_ID join jobs on PAGES.DOCID = jobs.DOCID join session_history on jobs.SESSION_HISTORY_ID = session_history.SESSION_HISTORY_ID\n" + 
+				"where session_history.USERAGENT like '%Android%'";
+		prep = conn.prepareStatement(SQL);
+		rs = prep.executeQuery();
+		while(rs.next()) {
+			runningTotals += "\nTotal DocScan uploaded Images : "+rs.getInt("count(*)");
+		}
 		
-		String SQL = 	"select sum(endtime - starttime),sum(total_work)\n" + 
-						"from jobs j \n" + 
-						"where j.state like 'FINISHED' and started between ? and ? and  (j.JOB_IMPL like 'CITlabHtrTrainingJob' or j.JOB_IMPL like 'CITlabHtrPlusTrainingJob')";
+	
+	}
+	
+	
+	public static void getHtrModelCreated(Connection conn, int timePeriod) throws SQLException {
+		String SQL = 	"select count(htr_id), sum(nr_of_words)\n" + 
+				"from htr \n" + 
+				"where created between ? and ?";
 		PreparedStatement prep = conn.prepareStatement(SQL);
 		prep.setDate(1, sqlTimeAgo(timePeriod));
 		prep.setDate(2, sqlTimeNow());
 		ResultSet rs = prep.executeQuery();
 		while(rs.next()) {
-			totalTrainingTime = " "+hourFormat(rs.getLong("sum(endtime-starttime)"));
+			htrModelsCreated =  ""+rs.getInt("count(htr_id)")+" | Words : "+rs.getInt("sum(nr_of_words)");
 		}
-		
-		
 	}
-
-
-public static void getHtrModelCreated(Connection conn, int timePeriod) throws SQLException {
-	String SQL = 	"select count(htr_id), sum(nr_of_words)\n" + 
-			"from htr \n" + 
-			"where created between ? and ?";
-	PreparedStatement prep = conn.prepareStatement(SQL);
-	prep.setDate(1, sqlTimeAgo(timePeriod));
-	prep.setDate(2, sqlTimeNow());
-	ResultSet rs = prep.executeQuery();
-	while(rs.next()) {
-		htrModelsCreated =  ""+rs.getInt("count(htr_id)")+" | Words : "+rs.getInt("sum(nr_of_words)");
-	}
-}
 
 	public static void generateReport(int timePeriod) {
 
@@ -439,6 +470,8 @@ public static void getHtrModelCreated(Connection conn, int timePeriod) throws SQ
 			
 			getTrainingTime(conn, timePeriod);
 			
+			getRunningTotals(conn);
+			
 			emailMessage(conn,timePeriod);
 			
 			sendReportMail(null, timePeriod);
@@ -452,7 +485,8 @@ public static void getHtrModelCreated(Connection conn, int timePeriod) throws SQ
 		}
 
 	}
-	
+
+
 	private static String hourFormat(long l) {
 		return String.format("%02d:%02d:%02d", 
 			    TimeUnit.MILLISECONDS.toHours(l),
